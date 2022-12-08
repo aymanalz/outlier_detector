@@ -39,10 +39,10 @@ if 1:
                                    max_iterations = 400,
                                    min_mse =min_mse,
                                    test_frac=0.3,
-                                   damping_weight=0.833,
-                                   signal_error_quantile=0.95,
-                                   frac_noisy_samples=0.01,
-                                   frac_signal_samples=0.01,
+                                   damping_weight=0.0,
+                                   signal_error_quantile=0.5,
+                                   frac_noisy_samples=0.1,
+                                   frac_signal_samples=0.1,
                                    score= "neg_mean_squared_error")
     od.purify(seed = 576)
     stop = 1

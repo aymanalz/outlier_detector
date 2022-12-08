@@ -327,8 +327,10 @@ class Detector(object):
                 if ww> 1:
                     ww = 1.0
                 w[err < ww*self.max_signal_error] = 1.0
-                w = w / np.sum(w)
-                w[np.isnan(w)] = 0
+                if np.sum(w)>0:
+                    w = w / np.sum(w)
+                else:
+                    w = w * 0.0
             else:
                 w = 1 /err
                 w = w / np.sum(w)
@@ -403,9 +405,9 @@ class Detector(object):
             df_results.loc[iter_mask, list(range(len(self.df)))] = 0
             df_results.loc[iter_mask, signal_ids] = 1
 
-            if np.mod(iter, 100) == 0:
-                sigs = self.df_signal.sample(frac=0.1, random_state=self.get_seed())
-                noss = self.df_noise.sample(frac=0.1, random_state=self.get_seed())
+            if np.mod(iter, 1000000) == 0:
+                sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
+                noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
 
                 self.df_signal = self.df_signal.drop(sigs.index)
                 self.df_signal = pd.concat([self.df_signal, noss])
