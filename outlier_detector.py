@@ -188,14 +188,14 @@ class Detector(object):
 
         plt.ion()
 
-        plot1, = axs[0].plot(np.log10(np.abs(signal_average_scroe)), 'r', label='Error in Noise Model')
+        plot1, = axs[0].plot((np.abs(signal_average_scroe)), 'r', label='Error in Noise Model')
         plot2, = axs[0].plot(np.log10(np.abs(sigal_smoothed_score)), 'b', label='Error in Signal Model')
         plot3, = axs[1].plot(frac_noise_list, 'b', label='Error in Signal Model')
         if iter == 0:
             axs[0].legend(loc='upper right', bbox_to_anchor=(0, 0.5))
 
-        plot1.set_ydata(np.log10(np.abs(signal_average_scroe)))
-        plot2.set_ydata(np.log10(np.abs(sigal_smoothed_score)))
+        #plot1.set_ydata(np.log10(np.abs(signal_average_scroe)))
+        #plot2.set_ydata(np.log10(np.abs(sigal_smoothed_score)))
 
         axs[0].set_title(str(iter))
         fig.canvas.draw()
@@ -267,14 +267,9 @@ class Detector(object):
         sigal_smoothed_score = []
         signal_iter_score = []
 
+        average_weight_change = []
         window = 1
-
-        frac_noisy_samples = 0.05
-        frac_signal_samples = 0.01
-
         signal_gammas = []
-        error_quantile = 0.90
-        min_rel_error = 0.05
 
         # ===============================================================
         # Iterate
@@ -320,7 +315,6 @@ class Detector(object):
             level = scipy.stats.hmean(max_allowed_error)
             # propose samples to remove
             err = self.df_noise['err'].values
-            #rel_err = np.abs((self.signal_model.predict(df_noise[self.features]) - df_noise[self.target])) / np.abs(df_noise[self.target])
             w = np.zeros_like(yo_true.values)
             if 1:
                 ww = iter/1
@@ -368,42 +362,35 @@ class Detector(object):
             signal_frac = len(self.df_signal) / len(self.df_noise)
 
             if u <= gamma * window:
-
                 if signal_frac < self.max_signal_ratio:
                     self.df_signal = df_signal_.copy()
                     signal_average_score.append(new_score)
                     del (df_noise_new['err'])
                     self.df_noise = df_noise_new.copy()
-
             else:
                 del (self.df_noise['err'])
                 signal_average_score.append(signal_average_score[-1])
 
             frac_noise_list.append(1.0 / signal_frac)
             if len(signal_average_score) > 1:
+                # becuase we have two new scores every iteration
                 ave_score = (signal_average_score[-1] + signal_average_score[-2]) / 2.0
                 signal_iter_score.append(ave_score)
             else:
                 signal_iter_score.append(signal_average_score[-1])
 
-            if len(signal_iter_score) > 10:
-                last5 = np.array(signal_iter_score)[-10:]
-                sigal_smoothed_score.append(np.mean(last5))
-            else:
-                last5 = np.array(signal_iter_score)
-                sigal_smoothed_score.append(np.mean(last5))
-
             N = self.max_iterations
             if iter == 0:
-                columns = ['iter', 'score', 'sscore'] + list(range(len(self.df)))
+                columns = ['iter', 'score'] + list(range(len(self.df)))
                 df_results = pd.DataFrame(np.nan, index=list(range(N)), columns=columns)
                 df_results['iter'] = np.arange(N)
             iter_mask = df_results['iter'] == iter
             df_results.loc[iter_mask, 'score'] = signal_iter_score[-1]
-            df_results.loc[iter_mask, 'sscore'] = sigal_smoothed_score[-1]
+            #df_results.loc[iter_mask, 'sscore'] = sigal_smoothed_score[-1]
             signal_ids = self.df_signal['id'].values.tolist()
             df_results.loc[iter_mask, list(range(len(self.df)))] = 0
             df_results.loc[iter_mask, signal_ids] = 1
+
 
             if np.mod(iter, 1000000) == 0:
                 sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
@@ -419,12 +406,21 @@ class Detector(object):
                 self.df_noise.reset_index(inplace=True)
                 del (self.df_noise['index'])
 
-            if 1:
+            current_weights = df_results.mean()[list(range(len(self.df)))]
+            if iter> 0:
+                dw = previous_weights - current_weights
+                average_weight_change.append(np.max(np.abs(dw)))
+
+
+            previous_weights = current_weights
+
+            if np.mod(iter, 1)==0 :
                 self.visulize(
                     fig=fig, axs=axs,
                     signal_average_scroe=signal_iter_score, sigal_smoothed_score=sigal_smoothed_score,
                     iter=iter, frac_noise_list=frac_noise_list
                 )
+                xx =1
 
         return df_results
         x = 1
