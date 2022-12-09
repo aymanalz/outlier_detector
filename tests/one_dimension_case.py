@@ -41,8 +41,8 @@ if 1:
                                    test_frac=0.3,
                                    damping_weight=0.8,
                                    signal_error_quantile=0.5,
-                                   frac_noisy_samples=0.01,
-                                   frac_signal_samples=0.01,
+                                   frac_noisy_samples=0.1,
+                                   frac_signal_samples=0.1,
                                    score= "neg_mean_squared_error")
     od.purify(seed = 576)
     stop = 1
