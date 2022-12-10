@@ -36,6 +36,7 @@ if 1:
     od = outlier_detector.Detector(df,
                                    target = 'y',
                                    features = ['x1'],
+                                   sample_id = 'id',
                                    max_iterations = 400,
                                    min_mse =min_mse,
                                    test_frac=0.3,
