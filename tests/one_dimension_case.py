@@ -20,7 +20,7 @@ if 1:
     # add noise
     df = add_outlier_samples(df, skip_cols = ['signal'], frac=0.3, random_state = random_state)
     df['id'] = df.index.values
-    min_mse =  10000**2.0
+    min_mse =  5000**2.0
 
     """
     # good results
@@ -42,9 +42,9 @@ if 1:
                                    test_frac=0.3,
                                    damping_weight=0.8,
                                    signal_error_quantile=0.5,
-                                   frac_noisy_samples=0.1,
-                                   frac_signal_samples=0.1,
+                                   frac_noisy_samples=0.02,
+                                   frac_signal_samples=0.02,
                                    score= "neg_mean_squared_error",
-                                   proposal_method="random_walk")
+                                   proposal_method="quantile")
     od.purify(seed = 576)
     stop = 1
