@@ -44,6 +44,7 @@ if 1:
                                    signal_error_quantile=0.5,
                                    frac_noisy_samples=0.1,
                                    frac_signal_samples=0.1,
-                                   score= "neg_mean_squared_error")
+                                   score= "neg_mean_squared_error",
+                                   proposal_method="random_walk")
     od.purify(seed = 576)
     stop = 1

@@ -31,7 +31,8 @@ class Detector(object):
                  signal_error_quantile=0.80,
                  frac_noisy_samples=0.01,
                  frac_signal_samples=0.01,
-                 ml_hyperparamters=None
+                 ml_hyperparamters=None,
+                 proposal_method = 'quantile'
 
                  ):
 
@@ -70,6 +71,7 @@ class Detector(object):
         self.signal_error_quantile = signal_error_quantile
         self.frac_noisy_samples = frac_noisy_samples
         self.frac_signal_samples = frac_signal_samples
+        self.proposal_method = proposal_method
 
         if ml_hyperparamters is None:
             self.ml_hyperparamters = {
@@ -124,6 +126,12 @@ class Detector(object):
         return w, qq
 
     def train_and_evaluate_signal_model(self):
+        """
+
+        :return:
+        """
+        if self.iter > 83:
+            vvvv = 1
         df = self.df_signal.copy()
         df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
         train_df = df.sample(frac=(1 - self.test_frac), random_state=self.get_seed())
@@ -140,24 +148,71 @@ class Detector(object):
         return train_df, test_df, squar_error
 
     def quantile_proposal(self, train_df, test_df, signal_eval_square_error):
-        w, self.max_signal_error = self.compute_sampling_weight(signal_eval_square_error)
-        w = w / np.sum(w)
+        """
 
-        # propose samples to remove
-        nn = int(len(test_df.index.values) * self.frac_noisy_samples)
-        if nn > len(w[w > 0]):
-            nn = len(w[w > 0])
+        :param train_df:
+        :param test_df:
+        :param signal_eval_square_error:
+        :return:
+        """
+
+        self.max_signal_error = np.quantile(signal_eval_square_error, self.signal_error_quantile)
+        w = np.zeros_like(signal_eval_square_error)
+        w[signal_eval_square_error >= self.max_signal_error ] = 1
+        w = w / np.sum(w)
+        w[np.isnan(w)] = 0
+
+        n_noisy_samples = int(len(test_df.index.values) * self.frac_noisy_samples)
+
+        if n_noisy_samples > len(w[w > 0]):
+            n_noisy_samples = len(w[w > 0])
 
         np.random.seed(self.get_seed())
-        move_samples = choice(test_df.index.values, nn, p=w, replace=False)
-
-        df_to_move = test_df.iloc[move_samples]
+        move_samples = choice(test_df[self.sample_id], n_noisy_samples, p=w, replace=False)
+        df_to_move = test_df[test_df[self.sample_id].isin(move_samples)]
         self.ids_s2o = df_to_move[self.sample_id].values.tolist()
-        test_df_new = test_df.drop(index=move_samples)
-        proposed_signal_df = pd.concat([train_df, test_df_new], axis=0)
+
+        mask2move = self.df_signal[self.sample_id].isin(self.ids_s2o )
+        proposed_signal_df = self.df_signal[~mask2move]
         proposed_signal_df.reset_index(inplace=True)
         del (proposed_signal_df['index'])
-        return proposed_signal_df, df_to_move
+        return proposed_signal_df
+
+    def sig_mse_proposal(self, train_df, test_df, signal_eval_square_error):
+        """
+
+        :param train_df:
+        :param test_df:
+        :param signal_eval_square_error:
+        :return:        """
+
+        w = signal_eval_square_error.values
+        w[w<self.min_mse] = 0
+        if np.sum(w) == 0:
+            w = w * 0.0
+        else:
+            w = w / np.sum(w)
+
+        n_noisy_samples = int(len(test_df.index.values) * self.frac_noisy_samples)
+        if n_noisy_samples > len(w[w > 0]):
+            n_noisy_samples = len(w[w > 0])
+
+        np.random.seed(self.get_seed())
+        if np.sum(w) == 0:
+            proposed_signal_df = self.df_signal.copy()
+            self.ids_s2o = []
+        else:
+            np.random.seed(self.get_seed())
+            move_samples = choice(test_df[self.sample_id], n_noisy_samples, p=w, replace=False)
+            df_to_move = test_df[test_df[self.sample_id].isin(move_samples)]
+            self.ids_s2o = df_to_move[self.sample_id].values.tolist()
+
+            mask2move = self.df_signal[self.sample_id].isin(self.ids_s2o)
+            proposed_signal_df = self.df_signal[~mask2move]
+            proposed_signal_df.reset_index(inplace=True)
+            del (proposed_signal_df['index'])
+
+        return proposed_signal_df
 
     def propose_signal_change(self):
 
@@ -167,14 +222,48 @@ class Detector(object):
         elif method == "quantile":
             proposed_df_signal, proposed_df_noise = self.quantile_proposal()
 
-    def propose_sample_removal(self, min_rel_error=0.05):
+    def sig_random_walk_proposal(self,train_df,test_df):
+        """
+
+        :param train_df:
+        :param test_df:
+        :return:
+        """
+        n_noisy_samples = int(len(test_df.index.values) * self.frac_noisy_samples)
+        np.random.seed(self.get_seed())
+        move_samples = choice(test_df[self.sample_id], n_noisy_samples, replace=False)
+        df_to_move = test_df[test_df[self.sample_id].isin(move_samples)]
+        self.ids_s2o = df_to_move[self.sample_id].values.tolist()
+
+        mask2move = self.df_signal[self.sample_id].isin(self.ids_s2o)
+        proposed_signal_df = self.df_signal[~mask2move]
+        proposed_signal_df.reset_index(inplace=True)
+        del (proposed_signal_df['index'])
+
+        return proposed_signal_df
+
+
+
+    def propose_sample_removal(self):
         """
 
         """
         train_df, test_df, signal_eval_square_error = self.train_and_evaluate_signal_model()
-        proposed_signal_df, df_to_move = self.quantile_proposal(train_df,
-                                                                test_df,
-                                                                signal_eval_square_error)
+
+        if self.proposal_method in ['quantile']:
+            proposed_signal_df = self.quantile_proposal(train_df,
+                                                        test_df,
+                                                        signal_eval_square_error)
+        elif self.proposal_method in ['mse']:
+            proposed_signal_df = self.sig_mse_proposal(train_df,
+                                                       test_df,
+                                                       signal_eval_square_error)
+        elif self.proposal_method in ['random_walk']:
+            proposed_signal_df = self.sig_random_walk_proposal(train_df,
+                                                       test_df)
+
+        else:
+            raise ValueError("Unkown method")
 
         gb = self.xgb_estimator(params=self.ml_hyperparamters)
         gb.set_params(random_state=self.get_seed())
@@ -185,8 +274,74 @@ class Detector(object):
                                         proposed_signal_df[self.target],
                                         scoring=self.score, cv=self.kfolds)
         new_score = np.mean(signal_scores)
-        self.df_s2o = df_to_move
+
         self.propose_df_signal = proposed_signal_df
+        all_ids = set(self.df[self.sample_id].values)
+        sig_ids = set(self.propose_df_signal[self.sample_id].values)
+        noise_ids = list(all_ids.difference(sig_ids))
+        self.propose_df_noise = self.df[(self.df[self.sample_id].isin(noise_ids))].copy()
+
+
+
+        return new_score
+
+    def propose_sample_addition(self):
+        """
+
+        :return:
+        """
+        yo_hat = self.signal_model.predict(self.df_noise[self.features])
+        yo_true = self.df_noise[self.target]
+        self.df_noise['err'] = np.power((yo_hat - yo_true), 2)
+
+        err = self.df_noise['err'].values
+        w = np.zeros_like(yo_true.values)
+        if self.proposal_method in ['quantile']:
+            w[err < self.max_signal_error] = 1.0
+            if np.sum(w) > 0:
+                w = w / np.sum(w)
+            else:
+                w = w * 0.0
+        elif self.proposal_method in ['mse']:
+            w = 1 / err
+            w = w / np.sum(w)
+
+        elif self.proposal_method in ['random_walk']:
+            w = (1.0* np.ones_like(w))/len(w)
+
+
+        nn = int(len(self.df_noise.index.values) * self.frac_signal_samples)
+        if nn > len(w[w > 0]):
+            nn = len(w[w > 0])
+        if nn > 0:
+            np.random.seed(self.get_seed())
+            move_samples = choice(self.df_noise[self.sample_id],
+                                  nn,
+                                  p=w,
+                                  replace=False)
+        else:
+            move_samples = []
+
+        df_move = self.df_noise[self.df_noise[self.sample_id].isin(move_samples)]
+        df_noise_new = self.df_noise[~(self.df_noise[self.sample_id].isin(move_samples))]
+        df_noise_new.reset_index(inplace=True)
+        del (df_noise_new['index'])
+
+        df_signal_ = pd.concat([self.df_signal, df_move], axis=0)
+        df_signal_.reset_index(inplace=True)
+        del (df_signal_['index'])
+
+        self.propose_df_signal = df_signal_
+        self.propose_df_noise = df_noise_new
+
+        self.estimator.set_params(random_state=self.get_seed())
+        self.estimator.set_params(seed=self.get_seed())
+        signal_scores = cross_val_score(self.estimator,
+                                        self.propose_df_signal[self.features],
+                                        self.propose_df_signal[self.target],
+                                        scoring=self.score,
+                                        cv=self.kfolds)
+        new_score = np.mean(signal_scores)
 
         return new_score
 
@@ -224,7 +379,6 @@ class Detector(object):
 
     def cross_validate(self):
 
-
         estimator = self.estimator
         scoring = self.score
 
@@ -232,7 +386,7 @@ class Detector(object):
         df_feat = df_[self.features]
         df_target = df_[self.target]
         cv = sklearn.model_selection.KFold(n_splits=self.kfolds, random_state=self.get_seed(),
-                                           shuffle = True) #
+                                           shuffle=True)  #
 
         estimator.set_params(random_state=self.get_seed())
         estimator.set_params(seed=self.get_seed())
@@ -258,7 +412,32 @@ class Detector(object):
         noise_df.reset_index(inplace=True)
         return noise_df
 
+    def diagnose(self):
 
+        N = self.max_iterations
+        if self.iter == 0:
+            ids_list = self.df[self.sample_id].values.tolist()
+            columns = ['iter', 'score'] + ids_list
+            self.df_results = pd.DataFrame(np.nan, index=list(range(N)), columns=columns)
+            self.df_results['iter'] = np.arange(N)
+        iter_mask = self.df_results['iter'] == self.iter
+        self.df_results.loc[iter_mask, 'score'] = self.signal_iter_score[-1]
+        signal_ids = self.df_signal[self.sample_id].values.tolist()
+        self.df_results.loc[iter_mask, list(range(len(self.df)))] = 0
+        self.df_results.loc[iter_mask, signal_ids] = 1
+
+        if self.iter <= 10:
+            current_weights = self.df_results[list(range(len(self.df)))].mean()
+        else:
+            last_10 = np.arange(self.iter - 10, self.iter + 1)
+            last_10 = last_10.tolist()
+            current_weights = self.df_results[last_10].mean()
+        if self.iter > 0:
+            dw = np.abs((self.previous_weights) - (current_weights))
+            self.max_weight_change.append(np.max(dw))
+
+        self.previous_weights = current_weights
+        self.acceptance_rate.append((self.accept_count / 2.0) / (self.iter + 1))
 
     def purify(self, seed=123):
         """
@@ -286,7 +465,6 @@ class Detector(object):
         self.signal_ids = self.df_signal[self.sample_id].values.tolist()
         self.noise_ids = self.df_noise[self.sample_id].values.tolist()
 
-
         self.df_noise.reset_index(inplace=True)
         del (self.df_noise['index'])
         self.df_signal.reset_index(inplace=True)
@@ -295,41 +473,42 @@ class Detector(object):
         signal_scores = self.cross_validate()
         signal_average_score = [np.mean(signal_scores)]
 
-        frac_noise_list = []
-        sigal_smoothed_score = []
-        signal_iter_score = []
+        self.frac_noise_list = []
+        self.signal_iter_score = []
 
-        max_weight_change = []
+        self.max_weight_change = []
         window = 1
         signal_gammas = []
+        self.acceptance_rate = []
+        self.accept_count = 0
 
-        # ===============================================================
-        # Iterate
-        # ===============================================================
-        max_allowed_error = []
-        acceptance_rate = []
-        accept_count = 0
         for iter in range(self.max_iterations):
+
+            self.iter = iter
 
             # ========================
             # remove outliers from  signal
             # ========================
+
             new_score = self.propose_sample_removal()
 
-            if self.max_signal_error < self.min_mse:
-                self.max_signal_error = self.min_mse
+            if self.proposal_method in ['quantile']:
+                if self.max_signal_error < self.min_mse:
+                    self.max_signal_error = self.min_mse
 
             gamma = signal_average_score[-1] / new_score
             signal_gammas.append(new_score)
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
             signal_frac = len(self.df_signal) / len(self.df_noise)
-            if u <= gamma:
+
+            window = 0.8
+            if u <= window * gamma:
                 if signal_frac > self.min_signal_ratio:
                     new_score = self.damping(signal_average_score[-1], new_score, self.damping_weight)
                     noise_ids = self.noise_ids + self.ids_s2o
                     self.noise_ids = noise_ids
-                    self.df_nois = pd.concat([self.df_noise, self.df_s2o], axis=0)
+                    self.df_noise = self.propose_df_noise
 
                     # this should be removed
                     self.df_noise.reset_index(inplace=True)
@@ -337,63 +516,14 @@ class Detector(object):
 
                     self.df_signal = self.propose_df_signal
                     signal_average_score.append(new_score)
-                    accept_count = accept_count + 1
-
+                    self.accept_count = self.accept_count + 1
             else:
                 signal_average_score.append(signal_average_score[-1])
 
             # ================================
             # remove signal from outlier
             # ================================
-            yo_hat = self.signal_model.predict(self.df_noise[self.features])
-            yo_true = self.df_noise[self.target]
-            self.df_noise['err'] = np.power((yo_hat - yo_true), 2)
-
-            max_allowed_error.append(self.max_signal_error)
-            level = scipy.stats.hmean(max_allowed_error)
-            # propose samples to remove
-            err = self.df_noise['err'].values
-            w = np.zeros_like(yo_true.values)
-            if 1:
-                ww = iter / 1
-                if ww > 1:
-                    ww = 1.0
-                w[err < ww * self.max_signal_error] = 1.0
-                if np.sum(w) > 0:
-                    w = w / np.sum(w)
-                else:
-                    w = w * 0.0
-            else:
-                w = 1 / err
-                w = w / np.sum(w)
-
-            nn = int(len(self.df_noise.index.values) * self.frac_signal_samples)
-            if nn > len(w[w > 0]):
-                nn = len(w[w > 0])
-            if nn > 0:
-                np.random.seed(self.get_seed())
-                move_samples = choice(self.df_noise.index.values,
-                                      nn,
-                                      p=w,
-                                      replace=False)
-            else:
-                move_samples = []
-
-            df_move = self.df_noise.iloc[move_samples]
-            df_noise_new = self.df_noise.drop(index=move_samples)
-            df_noise_new.reset_index(inplace=True)
-            del (df_noise_new['index'])
-
-            df_signal_ = pd.concat([self.df_signal, df_move], axis=0)
-            df_signal_.reset_index(inplace=True)
-            del (df_signal_['index'])
-
-            self.estimator.set_params(random_state=self.get_seed())
-            self.estimator.set_params(seed=self.get_seed())
-            signal_scores = cross_val_score(self.estimator, df_signal_[self.features], df_signal_[self.target],
-                                            scoring=self.score, cv=self.kfolds)
-            new_score = np.mean(signal_scores)
-
+            new_score = self.propose_sample_addition()
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
             gamma = signal_average_score[-1] / new_score
@@ -401,41 +531,28 @@ class Detector(object):
 
             if u <= gamma * window:
                 if signal_frac < self.max_signal_ratio:
-                    self.df_signal = df_signal_.copy()
+                    self.df_signal = self.propose_df_signal.copy()
                     signal_average_score.append(new_score)
-                    del (df_noise_new['err'])
-                    self.df_noise = df_noise_new.copy()
+                    del (self.propose_df_noise['err'])
+                    self.df_noise = self.propose_df_noise.copy()
                     self.noise_ids = self.df_noise[self.sample_id].values.tolist()
-                    accept_count = accept_count + 1
+                    self.accept_count = self.accept_count + 1
             else:
                 del (self.df_noise['err'])
                 signal_average_score.append(signal_average_score[-1])
 
-            frac_noise_list.append(1.0 / signal_frac)
+            self.frac_noise_list.append(1.0 / signal_frac)
             if len(signal_average_score) > 1:
-                # becuase we have two new scores every iteration
                 ave_score = (signal_average_score[-1] + signal_average_score[-2]) / 2.0
-                signal_iter_score.append(ave_score)
+                self.signal_iter_score.append(ave_score)
             else:
-                signal_iter_score.append(signal_average_score[-1])
+                self.signal_iter_score.append(signal_average_score[-1])
 
-            N = self.max_iterations
-            if iter == 0:
-                columns = ['iter', 'score'] + list(range(len(self.df)))
-                df_results = pd.DataFrame(np.nan, index=list(range(N)), columns=columns)
-                df_results['iter'] = np.arange(N)
-            iter_mask = df_results['iter'] == iter
-            df_results.loc[iter_mask, 'score'] = signal_iter_score[-1]
-            # df_results.loc[iter_mask, 'sscore'] = sigal_smoothed_score[-1]
-            signal_ids = self.df_signal[self.sample_id].values.tolist()
-            df_results.loc[iter_mask, list(range(len(self.df)))] = 0
-            df_results.loc[iter_mask, signal_ids] = 1
+            if np.mod(self.iter, 100000) == 0:
+                sigs = self.df_signal.sample(frac=0.03, random_state=self.get_seed())
+                noss = self.df_noise.sample(frac=0.03, random_state=self.get_seed())
 
-            if np.mod(iter, 1000000) == 0:
-                sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
-                noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
-
-                self.df_signal = self.df_signal.drop(sigs.index)
+                self.df_signal = self.df_signal.drop(sigs.index)#todo:fix
                 self.df_signal = pd.concat([self.df_signal, noss])
                 self.df_signal.reset_index(inplace=True)
                 del (self.df_signal['index'])
@@ -445,27 +562,16 @@ class Detector(object):
                 self.df_noise.reset_index(inplace=True)
                 del (self.df_noise['index'])
 
-            if iter <= 10:
-                current_weights = df_results[list(range(len(self.df)))].mean()
-            else:
-                last_10 = np.arange(iter - 10, iter + 1)
-                last_10 = last_10.tolist()
-                current_weights = df_results[last_10].mean()
-            if iter > 0:
-                dw = np.abs((previous_weights) - (current_weights))
-                max_weight_change.append(np.max(dw))
-
-            previous_weights = current_weights
-
-            acceptance_rate.append((accept_count / 2.0) / (iter + 1))
-
+            self.diagnose()
             if np.mod(iter, 1) == 0:
                 self.visulize(
                     fig=fig, axs=axs,
-                    signal_average_scroe=signal_iter_score, max_weight_change=max_weight_change,
-                    iter=iter, frac_noise_list=frac_noise_list, acceptance_rate=acceptance_rate
+                    signal_average_scroe=self.signal_iter_score,
+                    max_weight_change=self.max_weight_change,
+                    iter=iter,
+                    frac_noise_list=self.frac_noise_list,
+                    acceptance_rate=self.acceptance_rate
                 )
-                xx = 1
 
-        return df_results
-        x = 1
+            print(">>> Iteration = {}, Score = {}".format(iter, ave_score))
+        return self.df_results
