@@ -22,16 +22,7 @@ if 1:
     df['id'] = df.index.values
     min_mse =  5000**2.0
 
-    """
-    # good results
-    max_iterations = 400,
-    min_mse =min_mse,
-    test_frac=0.3,
-    damping_weight=0.833,
-    signal_error_quantile=0.90,
-    frac_noisy_samples=0.01,
-    frac_signal_samples=0.01,
-    """
+
     #‘neg_mean_absolute_error’
     od = outlier_detector.Detector(df,
                                    target = 'y',

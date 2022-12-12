@@ -43,12 +43,12 @@ class Detector(object):
         self.sample_id = sample_id
 
         if sample_id is None:
-            ids = np.range(len(df))
+            ids = range(len(df))
             if "sample_id" in df.columns:
                 raise ValueError("The column 'sample_id' is already in the dataset;"
                                  " change the name and try again. ")
             self.sample_id = "sample_id"
-            df[self.sample_id] = ids
+            self.df[self.sample_id] = ids
         else:
             if np.any(self.df[self.sample_id].duplicated()):
                 raise ValueError("Sample IDs must be unique")
@@ -269,6 +269,13 @@ class Detector(object):
 
         else:
             raise ValueError("Unkown method")
+
+        # random samples moves
+        if self.proposal_method in ['quantile', 'mse']:
+            leakage_rate = 0.01
+            all_ids = self.df[self.sample_id].values
+
+
 
         gb = self.xgb_estimator(params=self.ml_hyperparamters)
         gb.set_params(random_state=self.get_seed())
@@ -556,7 +563,7 @@ class Detector(object):
             else:
                 self.signal_iter_score.append(signal_average_score[-1])
 
-            if np.mod(self.iter, 1) == 0:
+            if np.mod(self.iter, 100000) == 0:
                 sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
                 noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
 
