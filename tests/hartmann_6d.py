@@ -15,11 +15,11 @@ def hart6d(xx):
                   [3, 3.5, 1.7, 10, 17, 8],
                   [17, 8, 0.05, 10, 0.1, 14]])
 
-    pm = np.array([[1312, 1696, 5569, 124, 8283, 5886],
+    pm = 1.0*np.array([[1312, 1696, 5569, 124, 8283, 5886],
                    [2329, 4135, 8307, 3736, 1004, 9991],
                    [2348, 1451, 3522, 2883, 3047, 6650],
                    [4047, 8828, 8732, 5743, 1091, 381]])
-    P = np.power(10.0, -4.0) * pm
+    P =  pm/10000.0
     outer = 0;
     for ii in range(4):
         inner = 0
@@ -30,9 +30,10 @@ def hart6d(xx):
             inner = inner + Aij * np.power((xj - Pij), 2.0)
         new = alpha[ii] * np.exp(-inner)
         outer = outer + new
-    y = -(2.58 + outer) / 1.94
 
-    return y
+
+
+    return outer
 
 def check_if_xgboost_can_model_this_function(df, features, target):
     random_state = np.random.RandomState(777)
@@ -88,9 +89,7 @@ if __name__ == "__main__":
     add_normal_noise_to_col(df, 'y', mu=0, seg=0.01, random_state=random_state)
     df['signal'] = 1
     df = add_outlier_samples(df, skip_cols=['signal'], frac=0.1, random_state=random_state)
-    #check_if_xgboost_can_model_this_function(df, features, target)
-
-
+    check_if_xgboost_can_model_this_function(df, features, target)
 
     min_mse = 0.01**2
     params = {

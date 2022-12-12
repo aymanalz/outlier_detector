@@ -273,7 +273,18 @@ class Detector(object):
         # random samples moves
         if self.proposal_method in ['quantile', 'mse']:
             leakage_rate = 0.01
-            all_ids = self.df[self.sample_id].values
+            all_ids = set(self.df[self.sample_id])
+            sig_ids = set(proposed_signal_df[self.sample_id])
+            avail_ids = list(all_ids.difference(sig_ids))
+            nn = int(leakage_rate * len(proposed_signal_df))
+            rand_samples = choice(avail_ids, size=nn)
+            new_sample = rand_samples.tolist() + list(sig_ids)
+            new_mask = self.df[self.sample_id].isin(rand_samples)
+            proposed_signal_df = self.df[new_mask]
+
+
+            cc = 1
+
 
 
 
