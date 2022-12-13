@@ -33,9 +33,10 @@ if 1:
                                    test_frac=0.3,
                                    damping_weight=0.8,
                                    signal_error_quantile=0.5,
-                                   frac_noisy_samples=0.02,
-                                   frac_signal_samples=0.02,
+                                   frac_noisy_samples=0.03,
+                                   frac_signal_samples=0.03,
                                    score= "neg_mean_squared_error",
-                                   proposal_method="quantile")
+                                   proposal_method="quantile",
+                                   leakage_rate = 0.03/5)
     od.purify(seed = 576)
     stop = 1

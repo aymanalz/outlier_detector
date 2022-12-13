@@ -89,7 +89,7 @@ if __name__ == "__main__":
     add_normal_noise_to_col(df, 'y', mu=0, seg=0.01, random_state=random_state)
     df['signal'] = 1
     df = add_outlier_samples(df, skip_cols=['signal'], frac=0.1, random_state=random_state)
-    check_if_xgboost_can_model_this_function(df, features, target)
+    #check_if_xgboost_can_model_this_function(df, features, target)
 
     min_mse = 0.01**2
     params = {

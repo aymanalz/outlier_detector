@@ -32,7 +32,8 @@ class Detector(object):
                  frac_noisy_samples=0.01,
                  frac_signal_samples=0.01,
                  ml_hyperparamters=None,
-                 proposal_method = 'quantile'
+                 proposal_method = 'quantile',
+                 leakage_rate = 1e-3
 
                  ):
 
@@ -72,6 +73,7 @@ class Detector(object):
         self.frac_noisy_samples = frac_noisy_samples
         self.frac_signal_samples = frac_signal_samples
         self.proposal_method = proposal_method
+        self.leakage_rate = leakage_rate
 
         if ml_hyperparamters is None:
             self.ml_hyperparamters = {
@@ -272,21 +274,22 @@ class Detector(object):
 
         # random samples moves
         if self.proposal_method in ['quantile', 'mse']:
-            leakage_rate = 0.01
+            leakage_rate = self.leakage_rate
             all_ids = set(self.df[self.sample_id])
             sig_ids = set(proposed_signal_df[self.sample_id])
             avail_ids = list(all_ids.difference(sig_ids))
-            nn = int(leakage_rate * len(proposed_signal_df))
-            rand_samples = choice(avail_ids, size=nn)
-            new_sample = rand_samples.tolist() + list(sig_ids)
-            new_mask = self.df[self.sample_id].isin(rand_samples)
-            proposed_signal_df = self.df[new_mask]
+            nn = int(leakage_rate * len(avail_ids))
+            if nn == 0:
+                nn = 1
 
-
-            cc = 1
-
-
-
+            np.random.seed(self.get_seed())
+            try:
+                rand_samples = choice(avail_ids, size=nn, replace=False)
+            except:
+                vvvvv = 1
+            new_sig_sample = list(set(rand_samples.tolist() + list(sig_ids)))
+            new_sig_mask = self.df[self.sample_id].isin(new_sig_sample)
+            proposed_signal_df = self.df[new_sig_mask]
 
         gb = self.xgb_estimator(params=self.ml_hyperparamters)
         gb.set_params(random_state=self.get_seed())
@@ -333,6 +336,7 @@ class Detector(object):
             w = (1.0* np.ones_like(w))/len(w)
 
 
+
         nn = int(len(self.df_noise) * self.frac_signal_samples)
         if nn > len(w[w > 0]):
             nn = len(w[w > 0])
@@ -347,14 +351,32 @@ class Detector(object):
 
         df_move = self.df_noise[self.df_noise[self.sample_id].isin(move_samples)]
         df_noise_new = self.df_noise[~(self.df_noise[self.sample_id].isin(move_samples))]
-        df_noise_new.reset_index(inplace=True)
-        del (df_noise_new['index'])
 
-        df_signal_ = pd.concat([self.df_signal, df_move], axis=0)
-        df_signal_.reset_index(inplace=True)
-        del (df_signal_['index'])
+        if self.proposal_method in ['quantile', 'mse']:
+            leakage_rate = self.leakage_rate
+            all_ids = set(self.df[self.sample_id])
+            noise_ids = set(df_noise_new[self.sample_id])
+            avail_ids = list(all_ids.difference(noise_ids))
+            nn = int(leakage_rate * len(avail_ids))
+            if nn == 0:
+                nn = 1
 
-        self.propose_df_signal = df_signal_
+            np.random.seed(self.get_seed())
+            rand_samples = choice(avail_ids, size=nn, replace=False)
+            new_noise_sample = list(set(rand_samples.tolist() + list(noise_ids)))
+            new_noise_mask = self.df[self.sample_id].isin(new_noise_sample)
+            df_noise_new = self.df[new_noise_mask]
+            propose_df_signal = self.df[~new_noise_mask]
+
+
+        # df_noise_new.reset_index(inplace=True)
+        # del (df_noise_new['index'])
+
+        # df_signal_ = pd.concat([self.df_signal, df_move], axis=0)
+        # df_signal_.reset_index(inplace=True)
+        # del (df_signal_['index'])
+
+        self.propose_df_signal = propose_df_signal
         self.propose_df_noise = df_noise_new
 
         self.estimator.set_params(random_state=self.get_seed())
@@ -559,12 +581,12 @@ class Detector(object):
                 if signal_frac < self.max_signal_ratio:
                     self.df_signal = self.propose_df_signal.copy()
                     signal_average_score.append(new_score)
-                    del (self.propose_df_noise['err'])
+                    #del (self.propose_df_noise['err'])
                     self.df_noise = self.propose_df_noise.copy()
                     self.noise_ids = self.df_noise[self.sample_id].values.tolist()
                     self.accept_count = self.accept_count + 1
             else:
-                del (self.df_noise['err'])
+                #del (self.df_noise['err'])
                 signal_average_score.append(signal_average_score[-1])
 
             self.frac_noise_list.append(1.0 / signal_frac)
@@ -574,19 +596,19 @@ class Detector(object):
             else:
                 self.signal_iter_score.append(signal_average_score[-1])
 
-            if np.mod(self.iter, 100000) == 0:
-                sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
-                noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
-
-                self.df_signal = self.df_signal.drop(sigs.index)#todo:fix
-                self.df_signal = pd.concat([self.df_signal, noss])
-                self.df_signal.reset_index(inplace=True)
-                del (self.df_signal['index'])
-
-                self.df_noise = self.df_noise.drop(noss.index)
-                self.df_noise = pd.concat([self.df_noise, sigs])
-                self.df_noise.reset_index(inplace=True)
-                del (self.df_noise['index'])
+            # if np.mod(self.iter, 100000) == 0:
+            #     sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
+            #     noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
+            #
+            #     self.df_signal = self.df_signal.drop(sigs.index)#todo:fix
+            #     self.df_signal = pd.concat([self.df_signal, noss])
+            #     self.df_signal.reset_index(inplace=True)
+            #     del (self.df_signal['index'])
+            #
+            #     self.df_noise = self.df_noise.drop(noss.index)
+            #     self.df_noise = pd.concat([self.df_noise, sigs])
+            #     self.df_noise.reset_index(inplace=True)
+            #     del (self.df_noise['index'])
 
             self.diagnose()
             if np.mod(iter, 1) == 0:
