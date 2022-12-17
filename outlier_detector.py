@@ -474,12 +474,17 @@ class Detector(object):
         self.df_results.loc[iter_mask, list(range(len(self.df)))] = 0
         self.df_results.loc[iter_mask, signal_ids] = 1
 
+        sample_ids = self.df[self.sample_id].values
+        sample_ids = sample_ids.tolist()
         if self.iter <= 10:
-            current_weights = self.df_results[list(range(len(self.df)))].mean()
+            current_weights = self.df_results[sample_ids]
+            current_weights = current_weights.mean()
         else:
             last_10 = np.arange(self.iter - 10, self.iter + 1)
             last_10 = last_10.tolist()
-            current_weights = self.df_results[last_10].mean()
+            current_weights = self.df_results[self.df_results['iter'].isin(last_10)]
+            current_weights = current_weights[sample_ids]
+            current_weights = current_weights.mean()
         if self.iter > 0:
             dw = np.abs((self.previous_weights) - (current_weights))
             self.max_weight_change.append(np.max(dw))
@@ -498,6 +503,7 @@ class Detector(object):
 
         ["iter", "number_signal_samples", "number_noise_samples", "score", "noise_signal_ratio"]
         fig, axs = self.visulize(fig=None)
+        self.master_seed = seed
         self.RandomState = np.random.RandomState(seed)
 
         # ===============================================================
@@ -596,22 +602,10 @@ class Detector(object):
             else:
                 self.signal_iter_score.append(signal_average_score[-1])
 
-            # if np.mod(self.iter, 100000) == 0:
-            #     sigs = self.df_signal.sample(frac=0.01, random_state=self.get_seed())
-            #     noss = self.df_noise.sample(frac=0.01, random_state=self.get_seed())
-            #
-            #     self.df_signal = self.df_signal.drop(sigs.index)#todo:fix
-            #     self.df_signal = pd.concat([self.df_signal, noss])
-            #     self.df_signal.reset_index(inplace=True)
-            #     del (self.df_signal['index'])
-            #
-            #     self.df_noise = self.df_noise.drop(noss.index)
-            #     self.df_noise = pd.concat([self.df_noise, sigs])
-            #     self.df_noise.reset_index(inplace=True)
-            #     del (self.df_noise['index'])
+
 
             self.diagnose()
-            if np.mod(iter, 1) == 0:
+            if np.mod(iter, 1) == 50:
                 self.visulize(
                     fig=fig, axs=axs,
                     signal_average_scroe=self.signal_iter_score,
@@ -622,4 +616,15 @@ class Detector(object):
                 )
 
             print(">>> Iteration = {}, Score = {}".format(iter, ave_score))
+
+        # compute average sample weight
+        sample_ids = self.df[self.sample_id].values
+        sample_ids = sample_ids.tolist()
+        weights = self.df_results[sample_ids]
+        self.mean_score = weights.mean()
+        self.std_score = weights.std()
+        self.std_score = self.std_score.reset_index().rename(columns={"index": self.sample_id, 0: "score_std"})
+        self.mean_score = self.mean_score.reset_index().rename(columns={"index": self.sample_id, 0: "score_mean"})
+
+
         return self.df_results
