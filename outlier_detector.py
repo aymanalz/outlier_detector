@@ -33,7 +33,8 @@ class Detector(object):
                  frac_signal_samples=0.01,
                  ml_hyperparamters=None,
                  proposal_method = 'quantile',
-                 leakage_rate = 1e-3
+                 leakage_rate = 1e-3,
+                 symmetry_factor = 1.0
 
                  ):
 
@@ -42,6 +43,7 @@ class Detector(object):
         self.target = target
         self.features = features
         self.sample_id = sample_id
+        self.symmetry_factor = symmetry_factor
 
         if sample_id is None:
             ids = range(len(df))
@@ -295,11 +297,19 @@ class Detector(object):
         gb.set_params(random_state=self.get_seed())
         gb.set_params(seed=self.get_seed())
 
-        signal_scores = cross_val_score(gb,
-                                        proposed_signal_df[self.features],
-                                        proposed_signal_df[self.target],
-                                        scoring=self.score, cv=self.kfolds)
-        new_score = np.mean(signal_scores)
+        if 0: # old likelihood function
+            signal_scores = cross_val_score(gb,
+                                            proposed_signal_df[self.features],
+                                            proposed_signal_df[self.target],
+                                            scoring=self.score, cv=self.kfolds)
+            new_score = np.mean(signal_scores)
+        else:
+            new_score = self.cross_validate_mse(gb,
+                                    proposed_signal_df[self.features],
+                                    proposed_signal_df[self.target],
+                                    )
+
+
 
         self.propose_df_signal = proposed_signal_df
         all_ids = set(self.df[self.sample_id].values)
@@ -384,12 +394,18 @@ class Detector(object):
         cv = sklearn.model_selection.KFold(n_splits=self.kfolds, random_state=self.get_seed(),
                                            shuffle=True)  #
 
-        signal_scores = cross_val_score(self.estimator,
-                                        self.propose_df_signal[self.features],
-                                        self.propose_df_signal[self.target],
-                                        scoring=self.score,
-                                        cv=cv)
-        new_score = np.mean(signal_scores)
+        if 0: # old likelihood function
+            signal_scores = cross_val_score(self.estimator,
+                                            self.propose_df_signal[self.features],
+                                            self.propose_df_signal[self.target],
+                                            scoring=self.score,
+                                            cv=cv)
+            new_score = np.mean(signal_scores)
+        else:
+            new_score = self.cross_validate_mse(self.estimator,
+                                                self.propose_df_signal[self.features],
+                                                self.propose_df_signal[self.target],
+                                                )
 
         return new_score
 
@@ -446,6 +462,30 @@ class Detector(object):
 
         return cv_score
 
+    def cross_validate_mse(self, estimator, X, y):
+
+        X_ = X.reset_index(drop=True)
+        y_ = y.reset_index(drop = True)
+        cv = sklearn.model_selection.KFold(n_splits=self.kfolds, random_state=self.get_seed(),
+                                           shuffle=True)  #
+
+        estimator.set_params(random_state=self.get_seed())
+        estimator.set_params(seed=self.get_seed())
+
+
+        sum_er_square = 0
+        for train_index, val_index in cv.split(X_, y_):
+            Xtrain, X_val = X_.loc[train_index], X_.loc[val_index]
+            ytrain, y_val = y_.loc[train_index], y_.loc[val_index]
+
+            estimator.fit(Xtrain, ytrain)
+            pred = estimator.predict(X_val)
+            sum_er_square = sum_er_square + (pred-y_val).pow(2.0).sum() # error per iteration
+
+        err_var  = self.min_mse
+        likelihood = (-0.5 * sum_er_square/err_var) + np.log(2.0 * np.pi * err_var)
+        return likelihood
+
     def get_seed(self):
         seed = int(1e6 * self.RandomState.rand())
         return seed
@@ -490,7 +530,15 @@ class Detector(object):
             self.max_weight_change.append(np.max(dw))
 
         self.previous_weights = current_weights
-        self.acceptance_rate.append((self.accept_count / 2.0) / (self.iter + 1))
+
+        # if self.iter>20:
+        #     acc_rate = np.mean(self.acceptance_flag[:-20])
+        # else:
+        acc_rate = np.mean(self.acceptance_flag)
+
+        self.acceptance_rate.append(acc_rate)
+
+
 
     def purify(self, seed=123):
         """
@@ -524,8 +572,14 @@ class Detector(object):
         self.df_signal.reset_index(inplace=True)
         del (self.df_signal['index'])
 
-        signal_scores = self.cross_validate()
-        signal_average_score = [np.mean(signal_scores)]
+        if 0:
+            signal_scores = self.cross_validate()
+            signal_average_score = [np.mean(signal_scores)]
+        else:
+            signal_scores = self.cross_validate_mse(self.estimator,
+                                                    self.df_signal[self.features],
+                                                    self.df_signal[self.target])
+            signal_average_score = [np.mean(signal_scores)]
 
         self.frac_noise_list = []
         self.signal_iter_score = []
@@ -534,8 +588,9 @@ class Detector(object):
         window = 1
         signal_gammas = []
         self.acceptance_rate = []
+        self.acceptance_flag = []
         self.accept_count = 0
-
+        window = self.symmetry_factor
         for iter in range(self.max_iterations):
 
             self.iter = iter
@@ -556,10 +611,9 @@ class Detector(object):
             u = np.random.rand(1)
             signal_frac = len(self.df_signal) / len(self.df_noise)
 
-            window = 1.0
             if u <= window * gamma:
                 if signal_frac > self.min_signal_ratio:
-                    new_score = self.damping(signal_average_score[-1], new_score, self.damping_weight)
+                    #new_score = self.damping(signal_average_score[-1], new_score, self.damping_weight)
                     noise_ids = self.noise_ids + self.ids_s2o
                     self.noise_ids = noise_ids
                     self.df_noise = self.propose_df_noise
@@ -571,8 +625,10 @@ class Detector(object):
                     self.df_signal = self.propose_df_signal
                     signal_average_score.append(new_score)
                     self.accept_count = self.accept_count + 1
+                    self.acceptance_flag.append(1)
             else:
                 signal_average_score.append(signal_average_score[-1])
+                self.acceptance_flag.append(0)
 
             # ================================
             # remove signal from outlier
@@ -591,9 +647,11 @@ class Detector(object):
                     self.df_noise = self.propose_df_noise.copy()
                     self.noise_ids = self.df_noise[self.sample_id].values.tolist()
                     self.accept_count = self.accept_count + 1
+                    self.acceptance_flag.append(1)
             else:
                 #del (self.df_noise['err'])
                 signal_average_score.append(signal_average_score[-1])
+                self.acceptance_flag.append(0)
 
             self.frac_noise_list.append(1.0 / signal_frac)
             if len(signal_average_score) > 1:
@@ -605,7 +663,7 @@ class Detector(object):
 
 
             self.diagnose()
-            if np.mod(iter, 1) == 50:
+            if np.mod(iter, 1) == 100000:
                 self.visulize(
                     fig=fig, axs=axs,
                     signal_average_scroe=self.signal_iter_score,

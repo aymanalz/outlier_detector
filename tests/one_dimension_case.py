@@ -36,7 +36,7 @@ if 0:
                                    target = 'y',
                                    features = ['x1'],
                                    sample_id = 'id',
-                                   max_iterations = 1000,
+                                   max_iterations = 500,
                                    min_mse =min_mse,
                                    test_frac=0.3,
                                    damping_weight=0.8,
@@ -45,7 +45,8 @@ if 0:
                                    frac_signal_samples=0.03,
                                    score= "neg_mean_squared_error",
                                    proposal_method="quantile",
-                                   leakage_rate = 0.015)
+                                   leakage_rate = 0.02,
+                                   symmetry_factor=0.5)
     od.purify(seed = 576)
 
     fn = open("simple_od.dat", 'wb')
@@ -92,7 +93,8 @@ if multi_starts:
                                        frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.015)
+                                       leakage_rate=0.02,
+                                       symmetry_factor=0.5)
         od.purify(seed=seed)
 
         fn = os.path.join(result_ws, "run_{}.dat".format(seed))
@@ -136,7 +138,8 @@ if effect_of_test_size:
                                        frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.015)
+                                       leakage_rate=0.02,
+                                       symmetry_factor=0.5)
         od.purify(seed=576)
 
         fn = os.path.join(result_ws, "run_{}.dat".format(frac))
@@ -160,13 +163,13 @@ if effect_of_move_frac:
     min_mse = 5000 ** 2.0
 
     # ‘neg_mean_absolute_error’
-    result_ws = os.path.join(r"results", "candidate_frac")
+    result_ws = os.path.join(r"results", "mov_frac")
     if os.path.isdir(result_ws):
         shutil.rmtree(result_ws)
     os.mkdir(result_ws)
 
 
-    for frac in [0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.2, 0.3]:
+    for frac in [ 0.01, 0.03, 0.06, 0.1, 0.2, 0.3]:
         od = outlier_detector.Detector(df,
                                        target='y',
                                        features=['x1'],
@@ -180,7 +183,8 @@ if effect_of_move_frac:
                                        frac_signal_samples= frac,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.015)
+                                       leakage_rate=0.02,
+                                       symmetry_factor=0.5)
         od.purify(seed=576)
 
         fn = os.path.join(result_ws, "run_{}.dat".format(frac))
@@ -189,6 +193,12 @@ if effect_of_move_frac:
         fidw.close()
 
 if effect_of_noise_ratio:
+
+    result_ws = os.path.join(r"results", "noise_sig_ratio")
+    if os.path.isdir(result_ws):
+        shutil.rmtree(result_ws)
+    os.mkdir(result_ws)
+
     for frac in [0.3, 0.6, 0.9, 1.1]:
         random_state = np.random.RandomState(153)
         df1 = pd.DataFrame(np.arange(-100, 100, 0.4), columns=['x1'])
@@ -205,10 +215,7 @@ if effect_of_noise_ratio:
         min_mse = 5000 ** 2.0
 
         # ‘neg_mean_absolute_error’
-        result_ws = os.path.join(r"results", "noise_sig_ratio")
-        if os.path.isdir(result_ws):
-            shutil.rmtree(result_ws)
-        os.mkdir(result_ws)
+
 
         od = outlier_detector.Detector(df,
                                        target='y',
@@ -223,7 +230,8 @@ if effect_of_noise_ratio:
                                        frac_signal_samples= 0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.015)
+                                       leakage_rate=0.02,
+                                       symmetry_factor=0.5)
         od.purify(seed=576)
 
         fn = os.path.join(result_ws, "run_{}.dat".format(frac))
