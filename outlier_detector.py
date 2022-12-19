@@ -377,6 +377,19 @@ class Detector(object):
             new_noise_mask = self.df[self.sample_id].isin(new_noise_sample)
             df_noise_new = self.df[new_noise_mask]
             propose_df_signal = self.df[~new_noise_mask]
+        else:
+            #all_ids = set(self.df[self.sample_id])
+            noise_ids = set(df_noise_new[self.sample_id])
+            #avail_ids = list(all_ids.difference(noise_ids))
+
+            #np.random.seed(self.get_seed())
+            #rand_samples = choice(avail_ids, size=nn, replace=False)
+            #new_noise_sample = list(set(rand_samples.tolist() + list(noise_ids)))
+            new_noise_mask = self.df[self.sample_id].isin(noise_ids)
+            #df_noise_new = self.df[new_noise_mask]
+            propose_df_signal = self.df[~new_noise_mask]
+
+
 
 
         # df_noise_new.reset_index(inplace=True)
@@ -663,7 +676,7 @@ class Detector(object):
 
 
             self.diagnose()
-            if np.mod(iter, 1) == 100000:
+            if np.mod(iter, 1) == 0:
                 self.visulize(
                     fig=fig, axs=axs,
                     signal_average_scroe=self.signal_iter_score,

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 figures_folder = r"results\figures"
-data_folder =  r"results\test_fact"
+data_folder =  r"results\noise_sig_ratio"
 
 files = os.listdir(data_folder)
 
