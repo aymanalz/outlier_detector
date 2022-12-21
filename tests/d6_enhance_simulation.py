@@ -78,7 +78,7 @@ def check_if_xgboost_can_model_this_function(df, features, target):
 
 if __name__ == "__main__":
 
-    ratios = [0.25, 0.5, 1.0]
+    ratios = [1.0]
 
     def detect(ratio):
         features = ["X_{}".format(i) for i in range(6)]
@@ -122,16 +122,17 @@ if __name__ == "__main__":
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.1,
-                                       frac_signal_samples=0.1,
+                                       frac_noisy_samples=0.2,
+                                       frac_signal_samples=0.2,
                                        score="neg_mean_squared_error",
-                                       proposal_method="quantile",
+                                       proposal_method="mse",
                                        leakage_rate=0.03,
                                        symmetry_factor=0.5,
-                                       ml_hyperparamters= params
+                                       ml_hyperparamters= params,
+                                       min_signal_ratio = 0.25
                                        )
         od.purify(seed=576)
-        fn = open("D6_noise_ratio_0_{}.dat".format(int(100*ratio)), 'wb')
+        fn = open("D6_noise_ratio_mse_enhanced_{}.dat".format(int(100*ratio)), 'wb')
         pickle.dump(od, fn)
         fn.close()
         return 1

@@ -50,6 +50,7 @@ if noise_sig_ratio_0_5:
                                    symmetry_factor=0.5)
     od.purify(seed = 576)
 
-    fn = open("random_walk_proposal.dat", 'wb')
+    fn = open("results/smaplers/random_walk_proposal.dat", 'wb')
     pickle.dump(od, fn)
     fn.close()
+vv = 1
