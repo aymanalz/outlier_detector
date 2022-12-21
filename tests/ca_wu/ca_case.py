@@ -116,8 +116,8 @@ curr_trained_model = gb.fit(X_train[features], y_train)
 # diagnose
 y_pred = curr_trained_model.predict(X_test[features])
 
-from sklearn.metrics import r2_score
-plt.scatter(y_pred, y_test)
+#from sklearn.metrics import r2_score
+#plt.scatter(y_pred, y_test)
 
 df_train['sample_id'] = list(range(len(df_train)))
 min_mse = 30**2.0
@@ -134,12 +134,12 @@ od = outlier_detector.Detector(df_train,
                                frac_signal_samples=0.03,
                                score= "neg_mean_squared_error",
                                proposal_method="quantile",
-                               leakage_rate = 0.02,
+                               leakage_rate = 0.01,
                                symmetry_factor=0.5,
                                ml_hyperparamters = params)
-od.purify(seed = 576)
+od.purify(seed = 8891)
 
-fn = open("ca_wu_od.dat", 'wb')
+fn = open("ca_wu_od_3.dat", 'wb')
 pickle.dump(od, fn)
 fn.close()
 xx = 1
