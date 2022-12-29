@@ -78,9 +78,9 @@ def check_if_xgboost_can_model_this_function(df, features, target):
 
 if __name__ == "__main__":
 
-    ratios = [1.0]
+    sym_factors = [0.23]
 
-    def detect(ratio):
+    def detect(sym_fac):
         features = ["X_{}".format(i) for i in range(6)]
         target = 'y'
         random_state = np.random.RandomState(777)
@@ -93,10 +93,10 @@ if __name__ == "__main__":
 
         add_normal_noise_to_col(df, 'y', mu=0, seg=0.01, random_state=random_state)
         df['signal'] = 1
-        df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
+        df = add_outlier_samples(df, skip_cols=['signal'], frac=0.25, random_state=random_state)
         #check_if_xgboost_can_model_this_function(df, features, target)
 
-        min_mse = 0.01**2
+        min_mse = (0.01**2)
         params = {
             "objective": "reg:squarederror",
             "tree_method": "hist",
@@ -122,23 +122,22 @@ if __name__ == "__main__":
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.2,
-                                       frac_signal_samples=0.2,
+                                       frac_noisy_samples=0.1,
+                                       frac_signal_samples=0.3,
                                        score="neg_mean_squared_error",
-                                       proposal_method="mse",
-                                       leakage_rate=0.03,
-                                       symmetry_factor=0.5,
-                                       ml_hyperparamters= params,
-                                       min_signal_ratio = 0.25
+                                       proposal_method="quantile",
+                                       leakage_rate=0.15,
+                                       symmetry_factor=sym_fac,
+                                       ml_hyperparamters= params
                                        )
         od.purify(seed=576)
-        fn = open("D6_noise_ratio_mse_enhanced_{}.dat".format(int(100*ratio)), 'wb')
+        fn = open("D6_symmetry_{}.dat".format(int(100*sym_fac)), 'wb')
         pickle.dump(od, fn)
         fn.close()
         return 1
 
 
-    results = Parallel(n_jobs=3)(delayed(detect)(r) for r in ratios)
+    results = Parallel(n_jobs=3)(delayed(detect)(r) for r in sym_factors)
     stop = 1
 
 
