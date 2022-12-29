@@ -39,6 +39,7 @@ from sklearn.model_selection import train_test_split
 import copy
 import pickle
 import outlier_detector
+from joblib import Parallel, delayed
 
 # Seeds
 split_seed = 123
@@ -112,34 +113,39 @@ params = {
 gb = xgb.XGBRegressor(**params)
 
 curr_trained_model = gb.fit(X_train[features], y_train)
-
-# diagnose
 y_pred = curr_trained_model.predict(X_test[features])
 
-#from sklearn.metrics import r2_score
-#plt.scatter(y_pred, y_test)
+
+
 
 df_train['sample_id'] = list(range(len(df_train)))
-min_mse = 30**2.0
-od = outlier_detector.Detector(df_train,
-                               target =target,
-                               features = features,
-                               sample_id = 'sample_id',
-                               max_iterations = 500,
-                               min_mse =min_mse,
-                               test_frac=0.3,
-                               damping_weight=0.8,
-                               signal_error_quantile=0.5,
-                               frac_noisy_samples=0.03,
-                               frac_signal_samples=0.03,
-                               score= "neg_mean_squared_error",
-                               proposal_method="quantile",
-                               leakage_rate = 0.01,
-                               symmetry_factor=0.5,
-                               ml_hyperparamters = params)
-od.purify(seed = 8891)
+df_train = df_train.sample(frac = 0.9)
 
-fn = open("ca_wu_od_3.dat", 'wb')
-pickle.dump(od, fn)
-fn.close()
+def detect(seed):
+    min_mse = 30**2.0
+    od = outlier_detector.Detector(df_train,
+                                   target =target,
+                                   features = features,
+                                   sample_id = 'sample_id',
+                                   max_iterations = 500,
+                                   min_mse =min_mse,
+                                   test_frac=0.3,
+                                   damping_weight=0.8,
+                                   signal_error_quantile=0.5,
+                                   frac_noisy_samples=0.03,
+                                   frac_signal_samples=0.03,
+                                   score= "neg_mean_squared_error",
+                                   proposal_method="quantile",
+                                   leakage_rate = 0.01,
+                                   symmetry_factor=0.5,
+                                   ml_hyperparamters = params)
+    od.purify(seed = seed)
+    fn = open("ca_wu_od_{}.dat".format(seed), 'wb')
+    pickle.dump(od, fn)
+    fn.close()
+    return 1
+seeds = [1253, 5523, 8891, 2130]
+results = Parallel(n_jobs=4)(delayed(detect)(r) for r in seeds)
+
+
 xx = 1

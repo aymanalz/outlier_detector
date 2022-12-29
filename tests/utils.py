@@ -33,3 +33,16 @@ def add_outlier_samples(df, skip_cols,  frac=0.1, random_state = None):
     df = pd.concat([df, df_noise], axis=0)
     df = df.reset_index().drop(["index"], axis=1)
     return df
+
+def get_scores(obj, burn_in = 50):
+    burn_in = 50
+    df = obj.df_results.copy()
+    del (df['score'])
+    df = df[df['iter'] > burn_in]
+    del (df['iter'])
+
+    df = pd.DataFrame(df.mean(axis = 0))
+    df.reset_index(inplace=True)
+    df.rename(columns={'index': obj.sample_id, 0:'score_mean'}, inplace=True)
+
+    return df

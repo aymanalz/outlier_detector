@@ -11,6 +11,11 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import mean_squared_error
 from numpy.random import RandomState
 
+"""
+# todo list:
+1) allow user to pass custom initial split. 
+"""
+
 
 class Detector(object):
     def __init__(self, df,
@@ -32,9 +37,9 @@ class Detector(object):
                  frac_noisy_samples=0.01,
                  frac_signal_samples=0.01,
                  ml_hyperparamters=None,
-                 proposal_method = 'quantile',
-                 leakage_rate = 1e-3,
-                 symmetry_factor = 1.0
+                 proposal_method='quantile',
+                 leakage_rate=1e-3,
+                 symmetry_factor=1.0
 
                  ):
 
@@ -162,8 +167,8 @@ class Detector(object):
 
         self.max_signal_error = np.quantile(signal_eval_square_error, self.signal_error_quantile)
         w = np.zeros_like(signal_eval_square_error)
-        w[signal_eval_square_error >= self.max_signal_error ] = 1
-        w[signal_eval_square_error< self.min_mse] = 0
+        w[signal_eval_square_error >= self.max_signal_error] = 1
+        w[signal_eval_square_error < self.min_mse] = 0
         w = w / np.sum(w)
         w[np.isnan(w)] = 0
 
@@ -181,7 +186,7 @@ class Detector(object):
             df_to_move = test_df[test_df[self.sample_id].isin(move_samples)]
             self.ids_s2o = df_to_move[self.sample_id].values.tolist()
 
-            mask2move = self.df_signal[self.sample_id].isin(self.ids_s2o )
+            mask2move = self.df_signal[self.sample_id].isin(self.ids_s2o)
             proposed_signal_df = self.df_signal[~mask2move]
             proposed_signal_df.reset_index(inplace=True)
             del (proposed_signal_df['index'])
@@ -196,7 +201,7 @@ class Detector(object):
         :return:        """
 
         w = signal_eval_square_error.values
-        w[w<self.min_mse] = 0
+        w[w < self.min_mse] = 0
         if np.sum(w) == 0:
             w = w * 0.0
         else:
@@ -231,7 +236,7 @@ class Detector(object):
         elif method == "quantile":
             proposed_df_signal, proposed_df_noise = self.quantile_proposal()
 
-    def sig_random_walk_proposal(self,train_df,test_df):
+    def sig_random_walk_proposal(self, train_df, test_df):
         """
 
         :param train_df:
@@ -251,8 +256,6 @@ class Detector(object):
 
         return proposed_signal_df
 
-
-
     def propose_sample_removal(self):
         """
 
@@ -269,7 +272,7 @@ class Detector(object):
                                                        signal_eval_square_error)
         elif self.proposal_method in ['random_walk']:
             proposed_signal_df = self.sig_random_walk_proposal(train_df,
-                                                       test_df)
+                                                               test_df)
 
         else:
             raise ValueError("Unkown method")
@@ -297,7 +300,7 @@ class Detector(object):
         gb.set_params(random_state=self.get_seed())
         gb.set_params(seed=self.get_seed())
 
-        if 0: # old likelihood function
+        if 0:  # old likelihood function
             signal_scores = cross_val_score(gb,
                                             proposed_signal_df[self.features],
                                             proposed_signal_df[self.target],
@@ -305,19 +308,15 @@ class Detector(object):
             new_score = np.mean(signal_scores)
         else:
             new_score = self.cross_validate_mse(gb,
-                                    proposed_signal_df[self.features],
-                                    proposed_signal_df[self.target],
-                                    )
-
-
+                                                proposed_signal_df[self.features],
+                                                proposed_signal_df[self.target],
+                                                )
 
         self.propose_df_signal = proposed_signal_df
         all_ids = set(self.df[self.sample_id].values)
         sig_ids = set(self.propose_df_signal[self.sample_id].values)
         noise_ids = list(all_ids.difference(sig_ids))
         self.propose_df_noise = self.df[(self.df[self.sample_id].isin(noise_ids))].copy()
-
-
 
         return new_score
 
@@ -343,9 +342,7 @@ class Detector(object):
             w = w / np.sum(w)
 
         elif self.proposal_method in ['random_walk']:
-            w = (1.0* np.ones_like(w))/len(w)
-
-
+            w = (1.0 * np.ones_like(w)) / len(w)
 
         nn = int(len(self.df_noise) * self.frac_signal_samples)
         if nn > len(w[w > 0]):
@@ -378,26 +375,9 @@ class Detector(object):
             df_noise_new = self.df[new_noise_mask]
             propose_df_signal = self.df[~new_noise_mask]
         else:
-            #all_ids = set(self.df[self.sample_id])
             noise_ids = set(df_noise_new[self.sample_id])
-            #avail_ids = list(all_ids.difference(noise_ids))
-
-            #np.random.seed(self.get_seed())
-            #rand_samples = choice(avail_ids, size=nn, replace=False)
-            #new_noise_sample = list(set(rand_samples.tolist() + list(noise_ids)))
             new_noise_mask = self.df[self.sample_id].isin(noise_ids)
-            #df_noise_new = self.df[new_noise_mask]
             propose_df_signal = self.df[~new_noise_mask]
-
-
-
-
-        # df_noise_new.reset_index(inplace=True)
-        # del (df_noise_new['index'])
-
-        # df_signal_ = pd.concat([self.df_signal, df_move], axis=0)
-        # df_signal_.reset_index(inplace=True)
-        # del (df_signal_['index'])
 
         self.propose_df_signal = propose_df_signal
         self.propose_df_noise = df_noise_new
@@ -407,7 +387,7 @@ class Detector(object):
         cv = sklearn.model_selection.KFold(n_splits=self.kfolds, random_state=self.get_seed(),
                                            shuffle=True)  #
 
-        if 0: # old likelihood function
+        if 0:  # old likelihood function
             signal_scores = cross_val_score(self.estimator,
                                             self.propose_df_signal[self.features],
                                             self.propose_df_signal[self.target],
@@ -443,8 +423,6 @@ class Detector(object):
         if iter == 0:
             axs[0][0].legend(loc='upper right', bbox_to_anchor=(0, 0.5))
 
-        # plot1.set_ydata(np.log10(np.abs(signal_average_scroe)))
-        # plot2.set_ydata(np.log10(np.abs(sigal_smoothed_score)))
 
         axs[0][0].set_title(str(iter))
         fig.canvas.draw()
@@ -478,13 +456,12 @@ class Detector(object):
     def cross_validate_mse(self, estimator, X, y):
 
         X_ = X.reset_index(drop=True)
-        y_ = y.reset_index(drop = True)
+        y_ = y.reset_index(drop=True)
         cv = sklearn.model_selection.KFold(n_splits=self.kfolds, random_state=self.get_seed(),
                                            shuffle=True)  #
 
         estimator.set_params(random_state=self.get_seed())
         estimator.set_params(seed=self.get_seed())
-
 
         sum_er_square = 0
         for train_index, val_index in cv.split(X_, y_):
@@ -493,10 +470,10 @@ class Detector(object):
 
             estimator.fit(Xtrain, ytrain)
             pred = estimator.predict(X_val)
-            sum_er_square = sum_er_square + (pred-y_val).pow(2.0).sum() # error per iteration
+            sum_er_square = sum_er_square + (pred - y_val).pow(2.0).sum()  # error per iteration
 
-        err_var  = self.min_mse
-        likelihood = (-0.5 * sum_er_square/err_var) + np.log(2.0 * np.pi * err_var)
+        err_var = self.min_mse
+        likelihood = (-0.5 * sum_er_square / err_var) + np.log(2.0 * np.pi * err_var)
         return likelihood
 
     def get_seed(self):
@@ -544,14 +521,9 @@ class Detector(object):
 
         self.previous_weights = current_weights
 
-        # if self.iter>20:
-        #     acc_rate = np.mean(self.acceptance_flag[:-20])
-        # else:
         acc_rate = np.mean(self.acceptance_flag)
 
         self.acceptance_rate.append(acc_rate)
-
-
 
     def purify(self, seed=123):
         """
@@ -626,7 +598,7 @@ class Detector(object):
 
             if u <= window * gamma:
                 if signal_frac > self.min_signal_ratio:
-                    #new_score = self.damping(signal_average_score[-1], new_score, self.damping_weight)
+                    # new_score = self.damping(signal_average_score[-1], new_score, self.damping_weight)
                     noise_ids = self.noise_ids + self.ids_s2o
                     self.noise_ids = noise_ids
                     self.df_noise = self.propose_df_noise
@@ -656,13 +628,11 @@ class Detector(object):
                 if signal_frac < self.max_signal_ratio:
                     self.df_signal = self.propose_df_signal.copy()
                     signal_average_score.append(new_score)
-                    #del (self.propose_df_noise['err'])
                     self.df_noise = self.propose_df_noise.copy()
                     self.noise_ids = self.df_noise[self.sample_id].values.tolist()
                     self.accept_count = self.accept_count + 1
                     self.acceptance_flag.append(1)
             else:
-                #del (self.df_noise['err'])
                 signal_average_score.append(signal_average_score[-1])
                 self.acceptance_flag.append(0)
 
@@ -672,8 +642,6 @@ class Detector(object):
                 self.signal_iter_score.append(ave_score)
             else:
                 self.signal_iter_score.append(signal_average_score[-1])
-
-
 
             self.diagnose()
             if np.mod(iter, 1) == 0:
@@ -697,5 +665,119 @@ class Detector(object):
         self.std_score = self.std_score.reset_index().rename(columns={"index": self.sample_id, 0: "score_std"})
         self.mean_score = self.mean_score.reset_index().rename(columns={"index": self.sample_id, 0: "score_mean"})
 
-
         return self.df_results
+
+
+class ScoreModel(object):
+    def __init__(self, df = None,
+                features = [],
+                target = None,
+                seed = 123,
+                test_fraction = 0.3,
+                estimator=None,
+                ml_hyperparamters = None):
+        self.df = df
+        self.features = features
+        self.target = target
+        self.test_fraction = test_fraction
+        self.RandomState = np.random.RandomState(seed)
+
+        if ml_hyperparamters is None:
+            self.ml_hyperparamters = {
+                "objective": "reg:squarederror",
+                "tree_method": "hist",
+                "colsample_bytree": 0.8,
+                "learning_rate": 0.20,
+                "max_depth": 7,
+                "alpha": 100,
+                "n_estimators": 500,
+                "subsample": 0.8,
+                "reg_lambda": 10,
+                "min_child_weight": 5,
+                "gamma": 10,
+                "max_delta_step": 0,
+                "seed": 123,
+            }
+
+        else:
+            self.ml_hyperparamters = ml_hyperparamters
+
+        if estimator is None:
+            self.estimator = self.xgb_estimator(params=None)
+
+    def get_seed(self):
+        seed = int(1e6 * self.RandomState.rand())
+        return seed
+
+    def train(self):
+
+        df = self.df.copy()
+        df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
+        train_df = df.sample(frac=(1 - self.test_fraction), random_state=self.get_seed())
+        test_df = df.drop(index=train_df.index)
+        train_df.reset_index(drop=True, inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
+        self.score_model = self.xgb_estimator(params=self.ml_hyperparamters)
+        self.score_model.set_params(random_state=self.get_seed())
+        self.score_model.set_params(seed=self.get_seed())
+        self.score_model.fit(train_df[self.features], train_df[self.target])
+
+        y_hat = self.score_model.predict(test_df[self.features])
+        plt.scatter(y_hat, test_df[self.target])
+        plt.title(r2_score(y_hat, test_df[self.target]))
+        plt.show()
+
+        # squar_error = np.power((self.score_model.predict(test_df[self.features]) - test_df[self.target]), 2.0)
+        # return train_df, test_df, squar_error
+
+
+        xx = 1
+
+    def classify(self, params):
+        from numpy import loadtxt
+        from xgboost import XGBClassifier
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import accuracy_score
+
+        df = self.df.copy()
+        df['temp'] = 0
+        df.loc[df[self.target]>=0.5, 'temp'] = 1
+        df[self.target] = df['temp']
+        del(df['temp'])
+
+        df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
+        train_df = df.sample(frac=(1 - self.test_fraction), random_state=self.get_seed())
+        test_df = df.drop(index=train_df.index)
+        train_df.reset_index(drop=True, inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
+
+        self.score_model = XGBClassifier()
+
+        self.score_model.set_params(random_state=self.get_seed())
+        self.score_model.set_params(seed=self.get_seed())
+        self.score_model.fit(train_df[self.features], train_df[self.target])
+
+        y_hat = self.score_model.predict(test_df[self.features])
+
+        accuracy = accuracy_score(test_df[self.target], y_hat)
+
+        validation_df = pd.DataFrame(columns=['y_true', 'y_hat'])
+        validation_df['y_true'] = test_df[self.target].values
+        validation_df['y_hat'] = y_hat
+
+        # plt.scatter(y_hat, test_df[self.target])
+        # plt.title(accuracy)
+        return self.score_model, df, accuracy, validation_df
+
+    def evaluate(self):
+        pass
+
+    def predict(self):
+        pass
+
+    def xgb_estimator(self, params=None):
+        if params is None:
+            params = self.ml_hyperparamters
+
+        gb = xgb.XGBRegressor(**params)
+        return gb
