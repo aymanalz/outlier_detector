@@ -487,15 +487,15 @@ class Detector(object):
     def diagnose(self):
 
         N = self.max_iterations
+        ids_list = self.df[self.sample_id].values.tolist()
         if self.iter == 0:
-            ids_list = self.df[self.sample_id].values.tolist()
             columns = ['iter', 'score'] + ids_list
             self.df_results = pd.DataFrame(np.nan, index=list(range(N)), columns=columns)
             self.df_results['iter'] = np.arange(N)
         iter_mask = self.df_results['iter'] == self.iter
         self.df_results.loc[iter_mask, 'score'] = self.signal_iter_score[-1]
         signal_ids = self.df_signal[self.sample_id].values.tolist()
-        self.df_results.loc[iter_mask, list(range(len(self.df)))] = 0
+        self.df_results.loc[iter_mask, ids_list] = 0
         self.df_results.loc[iter_mask, signal_ids] = 1
 
         sample_ids = self.df[self.sample_id].values
