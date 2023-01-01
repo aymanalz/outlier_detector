@@ -117,17 +117,17 @@ if __name__ == "__main__":
         od = outlier_detector.Detector(df,
                                        target='y',
                                        features=features,
-                                       max_iterations=500,
+                                       max_iterations=1000,
                                        min_mse=min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.05,
+                                       frac_noisy_samples=0.03,
+                                       frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.04,
-                                       symmetry_factor=0.5,
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3,
                                        ml_hyperparamters= params
                                        )
         od.purify(seed=576)

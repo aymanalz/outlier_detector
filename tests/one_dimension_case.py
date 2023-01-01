@@ -9,9 +9,9 @@ from joblib import Parallel, delayed
 
 
 Simple_test = False
-multi_starts = False
-effect_of_noise_ratio = False
-effect_of_test_size = False
+multi_starts = True
+effect_of_noise_ratio = True
+effect_of_test_size = True
 effect_of_update_step = True
 effect_of_proposal_function = True
 
@@ -42,17 +42,17 @@ if Simple_test:
                                    target = 'y',
                                    features = ['x1'],
                                    sample_id = 'id',
-                                   max_iterations = 500,
+                                   max_iterations = 1000,
                                    min_mse =min_mse,
                                    test_frac=0.3,
                                    damping_weight=0.8,
                                    signal_error_quantile=0.5,
                                    frac_noisy_samples=0.05,
-                                   frac_signal_samples=0.1,
+                                   frac_signal_samples=0.05,
                                    score= "neg_mean_squared_error",
                                    proposal_method="quantile",
                                    leakage_rate = 0.02,
-                                   symmetry_factor=0.5)
+                                   symmetry_factor=0.3)
     od.purify(seed = 576)
 
     fn = open("simple_od.dat", 'wb')
@@ -81,17 +81,17 @@ if multi_starts:
                                        target='y',
                                        features=['x1'],
                                        sample_id='id',
-                                       max_iterations=500,
+                                       max_iterations=1000,
                                        min_mse=min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.1,
+                                       frac_noisy_samples=0.03,
+                                       frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.02,
-                                       symmetry_factor=0.5)
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3)
         od.purify(seed=seed)
 
         fn = os.path.join(result_ws, "run_{}.dat".format(seed))
@@ -125,17 +125,17 @@ if effect_of_noise_ratio:
                                        target = 'y',
                                        features = ['x1'],
                                        sample_id = 'id',
-                                       max_iterations = 500,
+                                       max_iterations = 1000,
                                        min_mse =min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.1,
+                                       frac_noisy_samples=0.03,
+                                       frac_signal_samples=0.03,
                                        score= "neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate = 0.02,
-                                       symmetry_factor=0.5)
+                                       leakage_rate = 0.015,
+                                       symmetry_factor=0.3)
         od.purify(seed = 576)
 
         fn = open("results/noise_sig_ratio/noise_ratio_{}.dat".format(int(n2s_ratio*100)), 'wb')
@@ -174,17 +174,17 @@ if effect_of_test_size:
                                        target='y',
                                        features=['x1'],
                                        sample_id='id',
-                                       max_iterations=500,
+                                       max_iterations=1000,
                                        min_mse=min_mse,
                                        test_frac=frac,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.1,
+                                       frac_noisy_samples=0.03,
+                                       frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.02,
-                                       symmetry_factor=0.5)
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3)
         od.purify(seed=576)
         fn = os.path.join(result_ws, "run_{}.dat".format(frac))
         fidw = open(fn, 'wb')
@@ -220,17 +220,17 @@ if effect_of_update_step:
                                        target='y',
                                        features=['x1'],
                                        sample_id='id',
-                                       max_iterations=500,
+                                       max_iterations=1000,
                                        min_mse=min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
                                        frac_noisy_samples= frac,
-                                       frac_signal_samples= 2*frac,
+                                       frac_signal_samples= frac,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.02,
-                                       symmetry_factor=0.5)
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3)
         od.purify(seed=576)
         fn = os.path.join(result_ws, "run_{}.dat".format(frac))
         fidw = open(fn, 'wb')
@@ -239,8 +239,8 @@ if effect_of_update_step:
         return 1
 
 
-    fracs = [0.05, 0.1, 0.15, 0.2]
-    results = Parallel(n_jobs=4)(delayed(detect_step_size)(r) for r in fracs)
+    fracs = [0.01, 0.025, 0.05, 0.1, 0.2, 0.3]
+    results = Parallel(n_jobs=6)(delayed(detect_step_size)(r) for r in fracs)
 
 if effect_of_proposal_function:
     random_state = np.random.RandomState(153)
@@ -263,17 +263,17 @@ if effect_of_proposal_function:
                                        target='y',
                                        features=['x1'],
                                        sample_id='id',
-                                       max_iterations=500,
+                                       max_iterations=1000,
                                        min_mse=min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.1,
+                                       frac_noisy_samples=0.03,
+                                       frac_signal_samples=0.03,
                                        score="neg_mean_squared_error",
                                        proposal_method=sampler,
-                                       leakage_rate=0.02,
-                                       symmetry_factor=0.5)
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3)
         od.purify(seed=576)
 
         fn = open("results/smaplers/{}.dat".format(sampler), 'wb')

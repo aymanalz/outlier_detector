@@ -472,7 +472,8 @@ class Detector(object):
 
         err_var = self.min_mse
 
-        likelihood = (-0.5 * sum_er_square / err_var) / N - 0.5 * np.log(2.0 * np.pi * err_var)
+        #likelihood = (-0.5 * sum_er_square / err_var) / N - 0.5 * np.log(2.0 * np.pi * err_var)
+        likelihood = -0.5 * sum_er_square / err_var/N
 
         return likelihood
 
@@ -572,7 +573,9 @@ class Detector(object):
                 if self.max_signal_error < self.min_mse:
                     self.max_signal_error = self.min_mse
 
-            gamma = min(1, new_score / signal_average_score[-1])
+            r = new_score - signal_average_score[-1]
+            #gamma = min(1, new_score / signal_average_score[-1])
+            gamma = np.exp(r)
             signal_gammas.append(new_score)
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
@@ -595,7 +598,9 @@ class Detector(object):
             new_score = self.propose_sample_addition()
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
-            gamma = min(1, new_score / signal_average_score[-1])
+            #gamma = min(1, new_score / signal_average_score[-1])
+            r = new_score - signal_average_score[-1]
+            gamma = np.exp(r)
             signal_frac = len(self.df_signal) / len(self.df_noise)
 
             if (u <= gamma * window) & (signal_frac < self.max_signal_ratio):
