@@ -472,8 +472,8 @@ class Detector(object):
 
         err_var = self.min_mse
 
-        #likelihood = (-0.5 * sum_er_square / err_var) / N - 0.5 * np.log(2.0 * np.pi * err_var)
-        likelihood = -0.5 * sum_er_square / err_var/N
+        likelihood = (-0.5 * sum_er_square / err_var) / N - 0.5 * np.log(2.0 * np.pi * err_var)
+        #likelihood = -0.5 * sum_er_square / err_var/N
 
         return likelihood
 
