@@ -7,18 +7,18 @@ from utils import get_scores
 import shap
 
 
-files = [ r"ca_wu\ca_wu_od_1.dat",  r"ca_wu\ca_wu_od_2.dat",  r"ca_wu\ca_wu_od_3.dat"]
+files = [ r"ca_wu\ca_wu_od_1253.dat",  r"ca_wu\ca_wu_od_2130.dat",  r"ca_wu\ca_wu_od_5523.dat", r"ca_wu\ca_wu_od_8891.dat"]
 av_score = 0
 for i, fn in enumerate(files):
     fidr = open(fn, 'rb')
     obj = pickle.load(fidr)
     fidr.close()
-    scores = get_scores(obj, burn_in=100)
+    scores = get_scores(obj, burn_in=150)
     #scores = obj.mean_score
     ss = scores.sort_values(by='sample_id')
     av_score = av_score + ss['score_mean'].values
 
-av_score = av_score/3.0
+av_score = av_score/4.0
 ss['score_mean'] = av_score
 df = obj.df.copy()
 scores = ss
@@ -37,9 +37,10 @@ ax2.hist(
     series, cumulative=1, bins=50, alpha = 0.1, color='tab:red', density=True, label='CDF')
 plt.xlim([0,1])
 ax.set_xlabel("Outlier Score")
-fig.legend()
+
 ax.set_ylabel("Frequency")
 ax2.set_ylabel("CDF")
+fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.00), shadow=True, ncol=2)
 
 
 features = obj.features + [obj.target]
