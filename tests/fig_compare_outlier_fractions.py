@@ -4,7 +4,7 @@ import pickle
 import seaborn as sns
 import numpy as np
 import pandas as pd
-files = ['noise_ratio_0_25.dat', 'noise_ratio_0_5.dat', 'noise_ratio_1_0.dat',
+files = ['noise_ratio_25.dat', 'noise_ratio_50.dat', 'noise_ratio_100.dat',
          'D6_noise_ratio_0_25.dat', 'D6_noise_ratio_0_50.dat', 'D6_noise_ratio_0_100.dat']
 outlier_frac = [0.25, 0.5,1.0, 0.25, 0.5, 1.0]
 success_rate = []

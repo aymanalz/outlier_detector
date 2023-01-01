@@ -10,6 +10,10 @@ from joblib import Parallel, delayed
 
 def hart6d(xx):
     # xx = [x1, x2, x3, x4, x5, x6]
+
+    """
+     (0.20169, 0.150011, 0.476874, 0.275332, 0.311652, 0.6573), f(x*) = - 3.32237.
+    """
     alpha = [1.0, 1.2, 3.0, 3.2]
 
     A = np.array([[10, 3, 17, 3.5, 1.7, 8],
@@ -80,65 +84,25 @@ if __name__ == "__main__":
 
     ratios = [0.25, 0.5, 1.0]
 
-    def detect(ratio):
-        features = ["X_{}".format(i) for i in range(6)]
-        target = 'y'
-        random_state = np.random.RandomState(777)
-        X = np.random.rand(10000, 6)
-        y = np.apply_along_axis(hart6d, 1, X)
+
+    features = ["X_{}".format(i) for i in range(6)]
+    target = 'y'
+    random_state = np.random.RandomState(777)
+    X = np.random.rand(100000, 6)
+    y = np.apply_along_axis(hart6d, 1, X)
 
 
-        df = pd.DataFrame(X, columns=features)
-        df['y'] = y
+    df = pd.DataFrame(X, columns=features)
+    df['y'] = y
 
+    if 0:
         add_normal_noise_to_col(df, 'y', mu=0, seg=0.01, random_state=random_state)
         df['signal'] = 1
-        df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
-        #check_if_xgboost_can_model_this_function(df, features, target)
-
-        min_mse = 0.01**2
-        params = {
-            "objective": "reg:squarederror",
-            "tree_method": "hist",
-            "colsample_bytree": 0.8,
-            "learning_rate": 0.060,
-            "max_depth": 7,
-            "alpha": 0.1,
-            "n_estimators": 500,
-            "subsample": 0.8,
-            "reg_lambda": 1,
-            "min_child_weight": 10,
-            "gamma": 0.0001,
-            "max_delta_step": 0,
-            "seed": 123,
-        }
-
-        # ‘neg_mean_absolute_error’
-        od = outlier_detector.Detector(df,
-                                       target='y',
-                                       features=features,
-                                       max_iterations=500,
-                                       min_mse=min_mse,
-                                       test_frac=0.3,
-                                       damping_weight=0.8,
-                                       signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.05,
-                                       frac_signal_samples=0.05,
-                                       score="neg_mean_squared_error",
-                                       proposal_method="quantile",
-                                       leakage_rate=0.04,
-                                       symmetry_factor=0.5,
-                                       ml_hyperparamters= params
-                                       )
-        od.purify(seed=576)
-        fn = open("D6_noise_ratio_0_{}.dat".format(int(100*ratio)), 'wb')
-        pickle.dump(od, fn)
-        fn.close()
-        return 1
+        df = add_outlier_samples(df, skip_cols=['signal'], frac=0.25, random_state=random_state)
+    check_if_xgboost_can_model_this_function(df, features, target)
 
 
-    results = Parallel(n_jobs=3)(delayed(detect)(r) for r in ratios)
-    stop = 1
+
 
 
 

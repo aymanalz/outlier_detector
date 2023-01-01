@@ -40,7 +40,7 @@ def get_burin_period(obj, window):
 
     return phi_mean
 
-files = ['random_walk_proposal.dat', 'quantile_proposal.dat', 'mse_proposal.dat']
+files = ['random_walk.dat', 'quantile.dat', 'mse.dat']
 outlier_frac = ['Random Walk','Error Quantile', 'Squared Error']
 success_rate = []
 data_folder =  r"results\smaplers"
@@ -75,7 +75,7 @@ for i, file in enumerate(files):
     # brin, sill_value = V.cof[0], V.cof[1]
     import gstools as gs
 
-    m = gs.Stable(dim=1)
+    m = gs.Spherical(dim=1)
     m.fit_variogram(x, max(field) - field, nugget=False)
     len_scale = int(m.len_scale) + 2
     stddd = np.std(phi[len_scale:])

@@ -36,7 +36,7 @@ def train_1d_model(df, features, target, mode='noisy_data', params=None):
         model.fit(train_df[features], train_df[target])
     elif mode in ['flag']:
         df_tr = train_df.copy()
-        df_tr = df_tr[df_tr['score_mean'] >= 0.5]
+        df_tr = df_tr[df_tr['score_mean'] >= 0.8]
         model.fit(df_tr[features], df_tr[target])
     elif mode in ['weight']:
         df_tr = train_df.copy()
@@ -131,7 +131,7 @@ plt.gca().set_aspect('equal', adjustable='box')
 # ********************* plot binary model ********************
 figures_folder = r"results\figures"
 data_folder = r"results\noise_sig_ratio"
-fn = os.path.join(data_folder, "noise_ratio_0_25.dat")
+fn = os.path.join(data_folder, "noise_ratio_25.dat")
 
 fidr = open(fn, 'rb')
 obj = pickle.load(fidr)

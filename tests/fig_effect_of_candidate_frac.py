@@ -41,7 +41,7 @@ def get_burin_period(obj, window):
 
 
 figures_folder = r"results\figures"
-data_folder =  r"results\mov_frac"
+data_folder =  r"results\update_step"
 
 files = os.listdir(data_folder)
 
