@@ -121,13 +121,19 @@ y_pred = curr_trained_model.predict(X_test[features])
 df_train['sample_id'] = list(range(len(df_train)))
 df_train = df_train.sample(frac = 0.9)
 
+initial_signals = pd.read_csv(r"initial_average_score.csv")
+signal_ids = initial_signals[initial_signals['score_mean']>=0.5]
+signal_ids = signal_ids['sample_id'].values.tolist()
+
+
 def detect(seed):
     min_mse = 30**2.0
+
     od = outlier_detector.Detector(df_train,
                                    target =target,
                                    features = features,
                                    sample_id = 'sample_id',
-                                   max_iterations = 1000,
+                                   max_iterations = 2000,
                                    min_mse =min_mse,
                                    test_frac=0.3,
                                    damping_weight=0.8,
@@ -138,15 +144,15 @@ def detect(seed):
                                    proposal_method="quantile",
                                    leakage_rate = 0.01,
                                    symmetry_factor=0.5,
-                                   ml_hyperparamters = params)
+                                   ml_hyperparamters = params,
+                                   initial_signal_ids=signal_ids)
     od.purify(seed = seed)
-    fn = open("ca_wu_od_{}.dat".format(seed), 'wb')
+    fn = open("Long_run_{}.dat".format(seed), 'wb')
     pickle.dump(od, fn)
     fn.close()
     return 1
-seeds = [1253, 5523, 8891, 2130, 52347]
-#detect(1253)
-results = Parallel(n_jobs=5)(delayed(detect)(r) for r in seeds)
+seeds = [777]
+results = Parallel(n_jobs=4)(delayed(detect)(r) for r in seeds)
 
 
 xx = 1

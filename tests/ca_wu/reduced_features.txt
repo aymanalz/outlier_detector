@@ -73,7 +73,6 @@
  'n_jobs_cnty',
  'Urban_Misc',
  'tmmn_warm',
- 'swud_corr_fact',
  'Ecode_num_smc_25',
  'n_ind_construction',
  'Commercial',

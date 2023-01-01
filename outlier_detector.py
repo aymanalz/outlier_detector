@@ -487,15 +487,15 @@ class Detector(object):
     def diagnose(self):
 
         N = self.max_iterations
+        ids_list = self.df[self.sample_id].values.tolist()
         if self.iter == 0:
-            ids_list = self.df[self.sample_id].values.tolist()
             columns = ['iter', 'score'] + ids_list
             self.df_results = pd.DataFrame(np.nan, index=list(range(N)), columns=columns)
             self.df_results['iter'] = np.arange(N)
         iter_mask = self.df_results['iter'] == self.iter
         self.df_results.loc[iter_mask, 'score'] = self.signal_iter_score[-1]
         signal_ids = self.df_signal[self.sample_id].values.tolist()
-        self.df_results.loc[iter_mask, list(range(len(self.df)))] = 0
+        self.df_results.loc[iter_mask, ids_list] = 0
         self.df_results.loc[iter_mask, signal_ids] = 1
 
         sample_ids = self.df[self.sample_id].values
@@ -641,3 +641,117 @@ class Detector(object):
         self.mean_score = self.mean_score.reset_index().rename(columns={"index": self.sample_id, 0: "score_mean"})
 
         return self.df_results
+
+class ScoreModel(object):
+    def __init__(self, df = None,
+                features = [],
+                target = None,
+                seed = 123,
+                test_fraction = 0.3,
+                estimator=None,
+                ml_hyperparamters = None):
+        self.df = df
+        self.features = features
+        self.target = target
+        self.test_fraction = test_fraction
+        self.RandomState = np.random.RandomState(seed)
+
+        if ml_hyperparamters is None:
+            self.ml_hyperparamters = {
+                "objective": "reg:squarederror",
+                "tree_method": "hist",
+                "colsample_bytree": 0.8,
+                "learning_rate": 0.20,
+                "max_depth": 7,
+                "alpha": 100,
+                "n_estimators": 500,
+                "subsample": 0.8,
+                "reg_lambda": 10,
+                "min_child_weight": 5,
+                "gamma": 10,
+                "max_delta_step": 0,
+                "seed": 123,
+            }
+
+        else:
+            self.ml_hyperparamters = ml_hyperparamters
+
+        if estimator is None:
+            self.estimator = self.xgb_estimator(params=None)
+
+    def get_seed(self):
+        seed = int(1e6 * self.RandomState.rand())
+        return seed
+
+    def train(self):
+
+        df = self.df.copy()
+        df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
+        train_df = df.sample(frac=(1 - self.test_fraction), random_state=self.get_seed())
+        test_df = df.drop(index=train_df.index)
+        train_df.reset_index(drop=True, inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
+        self.score_model = self.xgb_estimator(params=self.ml_hyperparamters)
+        self.score_model.set_params(random_state=self.get_seed())
+        self.score_model.set_params(seed=self.get_seed())
+        self.score_model.fit(train_df[self.features], train_df[self.target])
+
+        y_hat = self.score_model.predict(test_df[self.features])
+        plt.scatter(y_hat, test_df[self.target])
+        plt.title(r2_score(y_hat, test_df[self.target]))
+        plt.show()
+
+        # squar_error = np.power((self.score_model.predict(test_df[self.features]) - test_df[self.target]), 2.0)
+        # return train_df, test_df, squar_error
+
+
+        xx = 1
+
+    def classify(self, params):
+        from numpy import loadtxt
+        from xgboost import XGBClassifier
+        from sklearn.model_selection import train_test_split
+        from sklearn.metrics import accuracy_score
+
+        df = self.df.copy()
+        df['temp'] = 0
+        df.loc[df[self.target]>=0.5, 'temp'] = 1
+        df[self.target] = df['temp']
+        del(df['temp'])
+
+        df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
+        train_df = df.sample(frac=(1 - self.test_fraction), random_state=self.get_seed())
+        test_df = df.drop(index=train_df.index)
+        train_df.reset_index(drop=True, inplace=True)
+        test_df.reset_index(drop=True, inplace=True)
+
+        self.score_model = XGBClassifier()
+
+        self.score_model.set_params(random_state=self.get_seed())
+        self.score_model.set_params(seed=self.get_seed())
+        self.score_model.fit(train_df[self.features], train_df[self.target])
+
+        y_hat = self.score_model.predict(test_df[self.features])
+
+        accuracy = accuracy_score(test_df[self.target], y_hat)
+
+        validation_df = pd.DataFrame(columns=['y_true', 'y_hat'])
+        validation_df['y_true'] = test_df[self.target].values
+        validation_df['y_hat'] = y_hat
+
+        # plt.scatter(y_hat, test_df[self.target])
+        # plt.title(accuracy)
+        return self.score_model, df, accuracy, validation_df
+
+    def evaluate(self):
+        pass
+
+    def predict(self):
+        pass
+
+    def xgb_estimator(self, params=None):
+        if params is None:
+            params = self.ml_hyperparamters
+
+        gb = xgb.XGBRegressor(**params)
+        return gb
