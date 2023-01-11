@@ -85,7 +85,7 @@ for i, file in enumerate(files):
     import gstools as gs
 
 
-    m = gs.Stable(dim=1)
+    m = gs.Spherical(dim=1)
     m.fit_variogram(x, max(field) - field, nugget=False)
     len_scale = int(m.len_scale) + 2
     stddd = np.std(phi[len_scale:])
