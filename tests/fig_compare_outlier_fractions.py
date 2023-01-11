@@ -32,7 +32,7 @@ for i, file in enumerate(files):
         nsamples = len(obj.df)
         fidr.close()
         ax = axd['upper left']
-        ax.plot(obj.df_results['iter'], obj.df_results['score'].abs()/nsamples, label = "ratio = {}".format(test_size))
+        ax.plot(obj.df_results['iter'], obj.df_results['score'].abs(), label = "ratio = {}".format(test_size))
 
         ax.set_xlabel("Iteration")
         ax.set_ylabel("Log-Likelihood\n $\mathcal{L}( f, \mathcal{D})$ ")
@@ -47,7 +47,7 @@ for i, file in enumerate(files):
         nsamples = len(obj.df)
         fidr.close()
         ax = axd['lower left']
-        ax.plot(obj.df_results['iter'], obj.df_results['score'].abs() / nsamples, label="ratio = {}".format(test_size))
+        ax.plot(obj.df_results['iter'], obj.df_results['score'].abs() , label="ratio = {}".format(test_size))
 
         ax.set_xlabel("Iteration")
         ax.set_ylabel("Log-Likelihood\n $\mathcal{L}( f, \mathcal{D})$ ")

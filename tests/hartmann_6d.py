@@ -89,14 +89,16 @@ if __name__ == "__main__":
 
 
         df = pd.DataFrame(X, columns=features)
-        df['y'] = y
+        df['y'] = np.log10(y)
 
-        add_normal_noise_to_col(df, 'y', mu=0, seg=0.01, random_state=random_state)
+        add_normal_noise_to_col(df, 'y', mu=0, seg=0.1, random_state=random_state)
         df['signal'] = 1
-        df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
+        #df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
+        df = add_balanced_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state,
+                                          target='y', splits=50)
         #check_if_xgboost_can_model_this_function(df, features, target)
 
-        min_mse = 0.01**2
+        min_mse = 0.1**2
         params = {
             "objective": "reg:squarederror",
             "tree_method": "hist",
@@ -117,17 +119,17 @@ if __name__ == "__main__":
         od = outlier_detector.Detector(df,
                                        target='y',
                                        features=features,
-                                       max_iterations=1000,
+                                       max_iterations=500,
                                        min_mse=min_mse,
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.03,
-                                       frac_signal_samples=0.03,
+                                       frac_noisy_samples=0.05,
+                                       frac_signal_samples=0.05,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.015,
-                                       symmetry_factor=0.3,
+                                       leakage_rate=0.02,
+                                       symmetry_factor=0.5,
                                        ml_hyperparamters= params
                                        )
         od.purify(seed=576)

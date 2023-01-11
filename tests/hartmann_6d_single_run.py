@@ -92,14 +92,11 @@ if __name__ == "__main__":
         df['y'] = np.log10(y)
 
         add_normal_noise_to_col(df, 'y', mu=0, seg=0.1, random_state=random_state)
-        check_if_xgboost_can_model_this_function(df, features, target)
         df['signal'] = 1
         #df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
         df = add_balanced_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state,
-                                          target = 'y', splits = 100)
-
-
-        #check_if_xgboost_can_model_this_function(df, features, target)
+                                          target='y', splits=50)
+        check_if_xgboost_can_model_this_function(df, features, target)
 
         min_mse = 0.1**2
         params = {
@@ -127,25 +124,23 @@ if __name__ == "__main__":
                                        test_frac=0.3,
                                        damping_weight=0.8,
                                        signal_error_quantile=0.5,
-                                       frac_noisy_samples=0.02,
-                                       frac_signal_samples=0.02,
+                                       frac_noisy_samples=0.05,
+                                       frac_signal_samples=0.05,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.001,
+                                       leakage_rate=0.02,
                                        symmetry_factor=0.5,
-                                       ml_hyperparamters= params,
-                                       #min_signal_ratio = 0.25
+                                       ml_hyperparamters= params
                                        )
         od.purify(seed=576)
-        fn = open("D6_noise_ratio_quantile2_enhanced_{}.dat".format(int(100*ratio)), 'wb')
+        fn = open("Single_D6_noise_ratio_0_{}.dat".format(int(100*ratio)), 'wb')
         pickle.dump(od, fn)
         fn.close()
         return 1
 
 
-    #results = Parallel(n_jobs=3)(delayed(detect)(r) for r in ratios)
     detect(0.25)
-    stop = 1
+    cc = 1
 
 
 

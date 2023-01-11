@@ -472,10 +472,9 @@ class Detector(object):
 
         err_var = self.min_mse
 
-        likelihood = (-0.5 * sum_er_square / err_var) / N - 0.5 * np.log(2.0 * np.pi * err_var)
-        #likelihood = -0.5 * sum_er_square / err_var/N
+        likelihood = (-0.5 * sum_er_square / (err_var)) + N*np.log(2.0 * np.pi * err_var)
 
-        return likelihood
+        return likelihood/N
 
     def get_seed(self):
         seed = int(1e6 * self.RandomState.rand())
@@ -520,6 +519,30 @@ class Detector(object):
 
         self.acceptance_rate.append(acc_rate)
 
+    def log_hasting_ratio(self, new_score, signal_average_score):
+        lik1 = signal_average_score[-1]
+        lik2 = new_score
+        n2 = len(self.propose_df_signal)
+        n1 = len(self.df_signal)
+
+        sig = 0.8*np.abs((lik2/n2+lik1/n1)/2.0 )
+        if sig< self.min_mse:
+            sig = self.min_mse
+        else:
+            sig = sig
+
+
+
+        sig2inv = np.log(0.5 / sig) * (n2-n1)/2
+
+
+        rr = sig2inv + (lik2 - lik1)/(2.0*sig)
+        return rr
+
+
+        pass
+
+
     def purify(self, seed=123):
         """
 
@@ -561,6 +584,7 @@ class Detector(object):
         self.acceptance_flag = []
         self.accept_count = 0
         window = self.symmetry_factor
+        signal_size = [len(self.df_signal)]
         for iter in range(self.max_iterations):
             self.iter = iter
 
@@ -574,8 +598,7 @@ class Detector(object):
                     self.max_signal_error = self.min_mse
 
             r = new_score - signal_average_score[-1]
-            #gamma = min(1, new_score / signal_average_score[-1])
-            gamma = np.exp(r)
+            gamma = np.exp(r)#*len(self.df_signal)/len(self.propose_df_signal)
             signal_gammas.append(new_score)
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
@@ -598,11 +621,9 @@ class Detector(object):
             new_score = self.propose_sample_addition()
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
-            #gamma = min(1, new_score / signal_average_score[-1])
-            r = new_score - signal_average_score[-1]
+            r = new_score  - signal_average_score[-1]
             gamma = np.exp(r)
             signal_frac = len(self.df_signal) / len(self.df_noise)
-
             if (u <= gamma * window) & (signal_frac < self.max_signal_ratio):
                 self.df_signal = self.propose_df_signal.copy()
                 signal_average_score.append(new_score)
