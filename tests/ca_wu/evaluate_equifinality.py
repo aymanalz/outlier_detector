@@ -8,7 +8,7 @@ import seaborn as sns
 figures_folder = r"results\figures"
 
 
-files = ['ca_wu_od_1253.dat','ca_wu_od_2130.dat','ca_wu_od_5523.dat', 'ca_wu_od_8891.dat']
+files = ['ca_wu_od_1253.dat','ca_wu_od_2130.dat','ca_wu_od_5523.dat', 'ca_wu_od_8891.dat', 'ca_wu_od_52347.dat']
 
 width_in = 7
 height_in = 6

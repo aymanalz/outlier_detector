@@ -688,7 +688,7 @@ class ScoreModel(object):
         seed = int(1e6 * self.RandomState.rand())
         return seed
 
-    def train(self):
+    def train(self, params):
 
         df = self.df.copy()
         df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
@@ -696,21 +696,21 @@ class ScoreModel(object):
         test_df = df.drop(index=train_df.index)
         train_df.reset_index(drop=True, inplace=True)
         test_df.reset_index(drop=True, inplace=True)
-        self.score_model = self.xgb_estimator(params=self.ml_hyperparamters)
+        self.score_model = self.xgb_estimator(params=params)
         self.score_model.set_params(random_state=self.get_seed())
         self.score_model.set_params(seed=self.get_seed())
         self.score_model.fit(train_df[self.features], train_df[self.target])
 
         y_hat = self.score_model.predict(test_df[self.features])
-        plt.scatter(y_hat, test_df[self.target])
-        plt.title(r2_score(y_hat, test_df[self.target]))
-        plt.show()
+        accuracy = r2_score(test_df[self.target], y_hat)
 
-        # squar_error = np.power((self.score_model.predict(test_df[self.features]) - test_df[self.target]), 2.0)
-        # return train_df, test_df, squar_error
+        validation_df = pd.DataFrame(columns=['y_true', 'y_hat'])
+        validation_df['y_true'] = test_df[self.target].values
+        validation_df['y_hat'] = y_hat
 
-
-        xx = 1
+        # plt.scatter(y_hat, test_df[self.target])
+        # plt.title(accuracy)
+        return self.score_model, df, accuracy, validation_df
 
     def classify(self, params):
         from numpy import loadtxt

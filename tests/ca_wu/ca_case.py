@@ -137,7 +137,7 @@ def detect(seed):
                                    score= "neg_mean_squared_error",
                                    proposal_method="quantile",
                                    leakage_rate = 0.01,
-                                   symmetry_factor=0.5,
+                                   symmetry_factor=0.33,
                                    ml_hyperparamters = params)
     od.purify(seed = seed)
     fn = open("ca_wu_od_{}.dat".format(seed), 'wb')
