@@ -473,8 +473,9 @@ class Detector(object):
         err_var = self.min_mse
 
         likelihood = (-0.5 * sum_er_square / (err_var)) + N*np.log(2.0 * np.pi * err_var)
+        normalized_likelihood = likelihood/N
 
-        return likelihood/N
+        return normalized_likelihood
 
     def get_seed(self):
         seed = int(1e6 * self.RandomState.rand())
