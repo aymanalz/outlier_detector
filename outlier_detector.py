@@ -138,8 +138,7 @@ class Detector(object):
 
         :return:
         """
-        if self.iter > 83:
-            vvvv = 1
+
         df = self.df_signal.copy()
         df = df.sample(frac=1, random_state=self.get_seed()).reset_index(drop=True)
         train_df = df.sample(frac=(1 - self.test_frac), random_state=self.get_seed())
@@ -291,10 +290,8 @@ class Detector(object):
                 nn = 1
 
             np.random.seed(self.get_seed())
-            try:
-                rand_samples = choice(avail_ids, size=nn, replace=False)
-            except:
-                vvvvv = 1
+            rand_samples = choice(avail_ids, size=nn, replace=False)
+
             new_sig_sample = list(set(rand_samples.tolist() + list(sig_ids)))
             new_sig_mask = self.df[self.sample_id].isin(new_sig_sample)
             proposed_signal_df = self.df[new_sig_mask]
@@ -472,7 +469,7 @@ class Detector(object):
 
         err_var = self.min_mse
 
-        likelihood = (-0.5 * sum_er_square / (err_var)) + N*np.log(2.0 * np.pi * err_var)
+        likelihood = (-0.5 * sum_er_square / (err_var)) -0.5* N*np.log(2.0 * np.pi * err_var)
         normalized_likelihood = likelihood/N
 
         return normalized_likelihood
@@ -597,9 +594,11 @@ class Detector(object):
             if self.proposal_method in ['quantile']:
                 if self.max_signal_error < self.min_mse:
                     self.max_signal_error = self.min_mse
-
-            r = new_score - signal_average_score[-1]
-            gamma = np.exp(r)#*len(self.df_signal)/len(self.propose_df_signal)
+            if 1:
+                r = new_score - signal_average_score[-1]
+                gamma = np.exp(r)#*len(self.df_signal)/len(self.propose_df_signal)
+            else:
+                gamma = new_score / signal_average_score[-1]
             signal_gammas.append(new_score)
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
@@ -622,8 +621,11 @@ class Detector(object):
             new_score = self.propose_sample_addition()
             np.random.RandomState(self.get_seed())
             u = np.random.rand(1)
-            r = new_score  - signal_average_score[-1]
-            gamma = np.exp(r)
+            if 1:
+                r = new_score  - signal_average_score[-1]
+                gamma = np.exp(r)
+            else:
+                gamma = new_score  / signal_average_score[-1]
             signal_frac = len(self.df_signal) / len(self.df_noise)
             if (u <= gamma * window) & (signal_frac < self.max_signal_ratio):
                 self.df_signal = self.propose_df_signal.copy()

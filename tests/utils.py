@@ -34,6 +34,8 @@ def add_outlier_samples(df, skip_cols,  frac=0.1, random_state = None):
     df = df.reset_index().drop(["index"], axis=1)
     return df
 
+
+
 def split_dataframe_by_position(df, splits):
     """
     Takes a dataframe and an integer of the number of splits to create.
@@ -83,7 +85,7 @@ def add_balanced_outlier_samples(df, skip_cols,  frac=0.1, random_state = None, 
     return df
 
 def get_scores(obj, burn_in = 50):
-    burn_in = 50
+    burn_in = burn_in
     df = obj.df_results.copy()
     del (df['score'])
     df = df[df['iter'] > burn_in]

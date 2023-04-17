@@ -47,11 +47,15 @@ for i, file in enumerate(files):
     success_rate.append(get_success_rate(obj, 'signal'))
 
     if i == 0:
-        score = obj.mean_score.copy()
+        import utils
+        score = utils.get_scores(obj, 200)
+        #score = obj.mean_score.copy()
         score.set_index(obj.sample_id, inplace = True)
         score.rename(columns = {'score_mean':"run {}".format(i)}, inplace = True)
     else:
-        sc = obj.mean_score.copy()
+        import utils
+        sc = utils.get_scores(obj, 200)
+        #sc = obj.mean_score.copy()
         sc.set_index(obj.sample_id, inplace=True)
         nm = "run {}".format(i)
         score[nm] = sc['score_mean']
@@ -84,7 +88,7 @@ xy_data['score'] = (score['run 0'] + score['run 1'] + score['run 2'])/3
 #plt.scatter(xy_data['x1'], xy_data['y'], c = xy_data['score'], s = 5, cmap = 'jet')
 sns.scatterplot(data=xy_data, x="x1", y="y", hue="score", ax = ax, palette='Spectral',  s=12)
 ax.set_xlim([xy_data['x1'].min(), xy_data['x1'].max()])
-norm = plt.Normalize(xy_data['y'].min()-10, xy_data['y'].max()+10)
+norm = plt.Normalize(xy_data['score'].min()-0.001, xy_data['score'].max()+0.001)
 sm = plt.cm.ScalarMappable(cmap="Spectral", norm=norm)
 sm.set_array([])
 

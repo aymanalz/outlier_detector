@@ -35,6 +35,7 @@ if Simple_test:
     df = add_outlier_samples(df, skip_cols = ['signal'], frac=0.25, random_state = random_state)
     df['id'] = df.index.values
     min_mse =  5000**2.0
+    #min_mse = 1500**2.0
 
 
     #‘neg_mean_absolute_error’

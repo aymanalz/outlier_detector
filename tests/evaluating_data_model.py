@@ -209,7 +209,7 @@ plt.colorbar()
 #### =============================
 figures_folder = r"results\figures"
 data_folder = r"results\noise_sig_ratio"
-fn = os.path.join(data_folder, r"results/noise_sig_ratio/D6_noise_ratio_0_25.dat")
+fn = os.path.join(data_folder, r"D6_noise_ratio_0_25.dat")
 
 fidr = open(fn, 'rb')
 obj = pickle.load(fidr)

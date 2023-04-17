@@ -89,16 +89,16 @@ if __name__ == "__main__":
 
 
         df = pd.DataFrame(X, columns=features)
-        df['y'] = np.log10(y)
+        df['y'] = y
 
         add_normal_noise_to_col(df, 'y', mu=0, seg=0.02, random_state=random_state)
         df['signal'] = 1
 
         df = add_balanced_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state,
-                                          target='y', splits=50)
+                                          target='y', splits=100)
 
         #min_mse = 0.1**2 # before 3/21/2023
-        min_mse = 0.2**2
+        min_mse = 0.01**2
         params = {
             "objective": "reg:squarederror",
             "tree_method": "hist",
@@ -128,12 +128,12 @@ if __name__ == "__main__":
                                        frac_signal_samples=0.05,
                                        score="neg_mean_squared_error",
                                        proposal_method="quantile",
-                                       leakage_rate=0.02,
-                                       symmetry_factor=0.5,
+                                       leakage_rate=0.015,
+                                       symmetry_factor=0.3,
                                        ml_hyperparamters= params
                                        )
         od.purify(seed=576)
-        fn = open("D6_noise_ratio_0_{}.dat".format(int(100*ratio)), 'wb')
+        fn = open("_D6_noise_ratio_0_{}.dat".format(int(100*ratio)), 'wb')
         pickle.dump(od, fn)
         fn.close()
         return 1

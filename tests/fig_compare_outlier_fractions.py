@@ -63,7 +63,7 @@ for i, file in enumerate(files):
     sig_flg.loc[sig_flg['signal'].isna(), 'signal'] = 0
     score['True_Score'] = sig_flg['signal'].astype('float')
     score['bin_flg'] = 0
-    score.loc[score['run'] >= 0.5, 'bin_flg'] = 1
+    score.loc[score['run'] > 0.5, 'bin_flg'] = 1
     sr = int(10000 * (score['True_Score'] == score['bin_flg']).sum()) / len(score) / 100
     success_rate.append(sr)
 

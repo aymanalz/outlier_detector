@@ -56,7 +56,7 @@ for i, file in enumerate(files):
     obj = pickle.load(fidr)
     nsamples = len(obj.df)
     fidr.close()
-    plt.plot(obj.df_results['iter'], obj.df_results['score'].abs()/nsamples, label = " {}".format(test_size))
+    plt.plot(obj.df_results['iter'], obj.df_results['score'].abs(), label = " {}".format(test_size))
     plt.legend()
     plt.xlabel("Iteration")
     plt.ylabel("Log-Likelihood\n $\mathcal{L}( f, \mathcal{D})$ ")

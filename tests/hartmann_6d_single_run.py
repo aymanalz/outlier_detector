@@ -90,12 +90,68 @@ if __name__ == "__main__":
 
         df = pd.DataFrame(X, columns=features)
         df['y'] = np.log10(y)
+        max_sigal = df['y'].max()
+        min_signa = df['y'].min()
 
         add_normal_noise_to_col(df, 'y', mu=0, seg=0.1, random_state=random_state)
         df['signal'] = 1
         #df = add_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state)
         df = add_balanced_outlier_samples(df, skip_cols=['signal'], frac=ratio, random_state=random_state,
                                           target='y', splits=50)
+        df_outliers = df[df['signal'].isna()].copy()
+        threshold = 0.8
+        if 0:
+            cols = df_outliers.columns
+            Xo = df_outliers[features].values
+            df_outliers['true_y'] = np.log10(np.apply_along_axis(hart6d, 1, Xo))
+            df_outliers['a1'] = min_signa
+            df_outliers['a2'] = df_outliers['true_y'] - threshold
+            df_outliers.loc[df_outliers['a2']<min_signa, 'a2'] = min_signa
+            df_outliers.loc[df_outliers['a2'] > max_sigal, 'a2'] = max_sigal
+            df_outliers['a3'] = df_outliers['true_y'] + threshold
+            df_outliers.loc[df_outliers['a3'] < min_signa, 'a3'] = min_signa
+            df_outliers.loc[df_outliers['a3'] > max_sigal, 'a3'] = max_sigal
+            df_outliers['a4'] = max_sigal
+            df_outliers['p1'] = (df_outliers['a2'] - df_outliers['a1'])/(df_outliers['a2'] - df_outliers['a1']+
+                                                                         df_outliers['a4'] - df_outliers['a3'])
+            df_outliers['u'] = np.random.rand(len(df_outliers))
+            masklower = df_outliers['u']<=df_outliers['p1']
+            a2_a1 = (df_outliers['a2']-df_outliers['a1'])
+            p1 = df_outliers['p1']
+            u1 = df_outliers['u']
+            ylower = df_outliers['a1'] + (a2_a1*u1/p1)
+            #df_outliers.loc[masklower, 'rand_y'] = ylower[masklower]
+            p2 = 1-df_outliers['p1']
+            u2 = df_outliers['u'] - df_outliers['p1']
+            a4_a3 = df_outliers['a4'] - df_outliers['a3']
+            yupper = df_outliers['a3'] + u2 * p2/a4_a3
+
+            df_outliers.loc[masklower, 'rand_y'] = ylower[masklower]
+            df_outliers.loc[~masklower, 'rand_y'] = yupper[~masklower]
+            df_outliers['y'] = df_outliers['rand_y']
+
+            df_outliers = df_outliers[cols]
+            df = pd.concat([df[~df['signal'].isna()],
+                            df_outliers])
+        else:
+            cols = df_outliers.columns
+            Xo = df_outliers[features].values
+            df_outliers['true_y'] = np.log10(np.apply_along_axis(hart6d, 1, Xo))
+            err = df_outliers['y'] - df_outliers['true_y']
+
+            mask = (np.abs(err) < threshold) & (err <=0)
+            shift = df_outliers['y'] - threshold
+            df_outliers.loc[mask, 'y'] = shift[mask]
+
+            mask = (np.abs(err) < threshold) & (err > 0)
+            shift = df_outliers['y'] + threshold
+            df_outliers.loc[mask, 'y'] = shift[mask]
+            df_outliers = df_outliers[cols]
+            df = pd.concat([df[~df['signal'].isna()],
+                            df_outliers])
+
+
+
         check_if_xgboost_can_model_this_function(df, features, target)
 
         min_mse = 0.1**2
