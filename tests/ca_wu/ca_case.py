@@ -145,8 +145,6 @@ def detect(seed):
     fn.close()
     return 1
 seeds = [1253, 5523, 8891, 2130, 52347]
-#detect(1253)
 results = Parallel(n_jobs=5)(delayed(detect)(r) for r in seeds)
 
 
-xx = 1

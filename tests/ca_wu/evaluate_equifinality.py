@@ -49,7 +49,6 @@ mask = np.triu(np.ones_like(corr, dtype=bool))
 sns.heatmap(corr, square=True, linewidths=.5, cbar_kws={"shrink": .5}, annot= True)
 plt.title("(b) Correlation of Scores \n from multiple runs")
 plt.tight_layout()
-p = 1
 
 
 

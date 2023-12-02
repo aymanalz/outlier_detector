@@ -154,5 +154,3 @@ def detect(seed):
 seeds = [777]
 results = Parallel(n_jobs=4)(delayed(detect)(r) for r in seeds)
 
-
-xx = 1
