@@ -78,8 +78,8 @@ for c in score.columns:
         ax.set_xlim([0,1])
 ax.legend()
 ax.set_xlabel("Outlier Scores")
-ax.set_ylabel("Frequency")
-ax.set_title("(c) Score Density")
+ax.set_ylabel("Probability Density")
+ax.set_title("(c) Score Probability Density")
 
 
 ax = axes[1, 1]

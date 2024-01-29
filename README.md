@@ -1,12 +1,13 @@
 # outlier_detector
 
-The module outlier_detector.py has two classes: (1) Detector and (2) ScoreModel. The Detector class has multiple functions to perform noise detection. 
-The entry point function to use this class is “purify”
+The module outlier_detector.py has two classes: (1) Detector and (2) ScoreModel. The Detector class has multiple
+functions to perform noise detection. The entry point function to use this class is “purify”
 
 ## Test Examples:
 All benchmark tests and used dataset can be found in “outlier_detector/tests”
-To run test problems run the scripts listed below. These scripts conduct multiple numerical experiments and save results in a folder named “results”.  
-The datasets include 2 synthetic problems (1D and 6D datasets), and a real-world problem (public supply in the southwest USA). 
+To run test problems run the scripts listed below. These scripts conduct multiple numerical experiments and save
+results in a folder named “results”.  The datasets include 2 synthetic problems (1D and 6D datasets), 
+and a real-world problem (public supply in the southwest USA). 
 
 ### Synthetic Test Problems 
 - Run one_dimension_case.py

@@ -117,11 +117,11 @@ plt.subplot(231)
 mask_outlier = issignal.isna()
 issignal[mask_outlier] = 0
 
-plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c='r', label='Outliers', s=6)
+plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c='r', label='Noise', s=6)
 plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c='b', label='Signal', s=6)
 minX = min(y_true.min(), y_hat.min())
 maxX = max(y_true.max(), y_hat.max())
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
@@ -159,18 +159,18 @@ plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c='b', label='Signal', 
 
 mask_missed_signal = (test_df['signal']==1) & (test_df['y_hat'].isna())
 y_hat[mask_outlier] = minX
-plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'r', alpha = 1.0,
+plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'teal', alpha = 1.0,
             label = 'Mislabeled Signal', s = 6, marker = '*')
 
 
 mask_missed_signal = (test_df['signal']!=1) & (~test_df['y_hat'].isna())
 y_hat[mask_outlier] = minX
 plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'm', alpha = 1.0,
-            label = 'Mislabeled Outlier', s = 6,  marker = 's')
+            label = 'Mislabeled Noise', s = 6,  marker = 's')
 
 
 
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
@@ -187,23 +187,29 @@ y_true = test_df[target].copy()
 issignal = test_df['y_hat'].copy()
 y_hat = test_df['y_hat'].copy()
 
+def fix_colorbar(ax, im):
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    plt.colorbar(im, cax=cax)
+
 plt.subplot(233)
 mask_outlier = issignal.isna()
 issignal[mask_outlier] = 0
 
 # plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c = 'r', label = 'Outliers', s = 6)
-plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c=test_df[~mask_outlier]['score_mean'],
+im = plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c=test_df[~mask_outlier]['score_mean'],
             cmap='jet_r', s=6)
 minX = min(y_true.min(), y_hat.min())
 maxX = max(y_true.max(), y_hat.max())
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
 plt.title("(c) 1D Case\n$R^2 = {}$".format(int(1000 * r2) / 1000))
 plt.gca().set_aspect('equal', adjustable='box')
-plt.colorbar()
-
+# plt.colorbar()
+fix_colorbar(plt.gca(), im)
 #### ==============================
 # 6D examples
 #### =============================
@@ -244,11 +250,11 @@ plt.subplot(234)
 mask_outlier = issignal.isna()
 issignal[mask_outlier] = 0
 
-plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c='r', label='Outliers', s=6)
+plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c='r', label='Noise', s=6)
 plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c='b', label='Signal', s=6)
 minX = min(y_true.min(), y_hat.min())
 maxX = max(y_true.max(), y_hat.max())
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
@@ -278,17 +284,17 @@ plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c='b', label='Signal',
 
 mask_missed_signal = (test_df['signal']==1) & (test_df['y_hat'].isna())
 y_hat[mask_outlier] = minX
-plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'r', alpha = 1.0,
+plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'teal', alpha = 1.0,
             label = 'Mislabeled Signal', s = 6, marker = '*')
 
 
 mask_missed_signal = (test_df['signal']!=1) & (~test_df['y_hat'].isna())
 y_hat[mask_outlier] = minX
 plt.scatter(y_true[mask_missed_signal], y_hat[mask_missed_signal], c = 'm', alpha = 1.0,
-            label = 'Mislabeled Outlier', s = 6,  marker = 's')
+            label = 'Mislabeled Noise', s = 6,  marker = 's')
 
 
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
@@ -310,16 +316,19 @@ mask_outlier = issignal.isna()
 issignal[mask_outlier] = 0
 
 # plt.scatter(y_true[mask_outlier], y_hat[mask_outlier], c = 'r', label = 'Outliers', s = 6)
-plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c=test_df[~mask_outlier]['score_mean'],
+im = plt.scatter(y_true[~mask_outlier], y_hat[~mask_outlier], c=test_df[~mask_outlier]['score_mean'],
             cmap='jet_r', s=6)
 minX = min(y_true.min(), y_hat.min())
 maxX = max(y_true.max(), y_hat.max())
-plt.plot([minX, maxX], [minX, maxX], 'g', label='1-1 Line')
+plt.plot([minX, maxX], [minX, maxX], 'g', label='1:1 Line')
 plt.legend(loc='upper left')
 plt.xlabel("True Target Value")
 plt.ylabel("Estimated Target Value")
 plt.title("(f) 6D Case\n$R^2 = {}$".format(int(1000 * r2) / 1000))
-plt.colorbar()
+
 plt.gca().set_aspect('equal', adjustable='box')
+fix_colorbar(plt.gca(), im)
+
+
 
 cc = 1
